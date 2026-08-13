@@ -8,17 +8,19 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; width: 100%; }
+        html, body { height: 100%; width: 100%; background: #000; }
         #map { height: 100vh; width: 100%; }
+
         .controls {
             position: absolute;
             top: 10px;
             right: 10px;
             z-index: 1000;
-            background: white;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
             min-width: 200px;
         }
         .controls h3 { margin-bottom: 12px; font-size: 16px; }
@@ -38,19 +40,26 @@
             padding: 6px; 
             margin: 8px 0;
             font-size: 13px;
+            background: #111;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
         }
+
         .status { 
             position: absolute; 
             bottom: 10px; 
             left: 10px; 
             z-index: 1000;
-            background: white;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
             padding: 12px 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
             font-size: 13px;
             line-height: 1.8;
         }
+
         .lightning-marker {
             animation: flash 1s ease-in-out infinite;
         }
@@ -91,15 +100,14 @@
     </div>
 
     <script>
-        // ТВОЙ СТАРЫЙ РАБОТАЮЩИЙ КЛЮЧ
+        // Твой ключ
         const OPENWEATHER_API = 'b5fd8a2df3a6857059b351884cf1d26b';
         
-        // Инициализация карты
-        const map = L.map('map').setView([55.75, 37.61], 5); // центр на Москве
-        
-        // Базовая карта
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
+        // Карта: тёмный базовый стиль
+        const map = L.map('map').setView([55.75, 37.61], 5);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© CartoDB | © OpenStreetMap',
             maxZoom: 19
         }).addTo(map);
         
@@ -124,8 +132,9 @@
             }
             
             if (layerName && layerUrls[layerName]) {
+                // 90% непрозрачности → opacity: 0.9
                 activeTileLayer = L.tileLayer(layerUrls[layerName], {
-                    opacity: 0.75,
+                    opacity: 0.9,
                     maxZoom: 19
                 }).addTo(map);
                 
@@ -163,9 +172,9 @@
                     data.forEach(strike => {
                         const marker = L.circleMarker([strike.lat, strike.lon], {
                             radius: 8,
-                            color: '#ff4500',
+                            color: '#ffcc00',
                             fillColor: '#ffff00',
-                            fillOpacity: 1,
+                            fillOpacity: 0.9,   // тоже почти непрозрачно
                             weight: 2,
                             className: 'lightning-marker'
                         });
