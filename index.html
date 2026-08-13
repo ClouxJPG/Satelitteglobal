@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спутниковые данные в реальном времени</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .info-panel h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .update-time {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .next-update {
+            color: #2196F3;
+            font-weight: bold;
+        }
+        
+        .layer-selector {
+            margin-top: 10px;
+        }
+        
+        .layer-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="info-panel">
+        <h3>🛰️ Спутниковые данные</h3>
+        <div class="update-time">
+            Последнее обновление: <span id="lastUpdate">-</span>
+        </div>
+        <div class="next-update">
+            Следующее: через <span id="countdown">10:00</span>
+        </div>
+        <div class="layer-selector">
+            <label for="layerSelect">Слой:</label>
+            <select id="layerSelect">
+                <option value="VIIRS_SNPP_CorrectedReflectance_TrueColor">True Color (VIIRS)</option>
+                <option value="MODIS_Aqua_CorrectedReflectance_TrueColor">True Color (MODIS Aqua)</option>
+                <option value="MODIS_Terra_CorrectedReflectance_TrueColor">True Color (MODIS Terra)</option>
+                <option value="VIIRS_SNPP_Thermal_Anomaly_375m_Night">Термальные аномалии (ночь)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Инициализация карты
+        const map = L.map('map').setView([20, 0], 3);
+        
+        // Базовая подложка (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Конфигурация NASA GIBS
+        const GIBS_BASE_URL = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/';
+        const UPDATE_INTERVAL = 10 * 60 * 1000; // 10 минут в миллисекундах
+        
+        let currentLayer = null;
+        let updateTimer = null;
+        let countdownTimer = null;
+        let timeRemaining = UPDATE_INTERVAL;
+        
+        // Получение текущей даты в формате для NASA GIBS
+        function getCurrentDate() {
+            const now = new Date();
+            return now.toISOString().split('T')[0]; // YYYY-MM-DD
+        }
+        
+        // Добавление спутникового слоя
+        function addSatelliteLayer(layerName) {
+            const date = getCurrentDate();
+            
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+            
+            currentLayer = L.tileLayer(
+                `${GIBS_BASE_URL}${layerName}/default/{time}/{z}/{x}/{y}.jpg`,
+                {
+                    attribution: '© NASA GIBS',
+                    time: date,
+                    maxZoom: 8,
+                    opacity: 0.7
+                }
+            ).addTo(map);
+            
+            // Обновление времени
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ru-RU');
+        }
+        
+        // Таймер обратного отсчёта
+        function startCountdown() {
+            timeRemaining = UPDATE_INTERVAL;
+            
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+            
+            countdownTimer = setInterval(() => {
+                timeRemaining -= 1000;
+                
+                if (timeRemaining <= 0) {
+                    timeRemaining = UPDATE_INTERVAL;
+                }
+                
+                const minutes = Math.floor(timeRemaining / 60000);
+                const seconds = Math.floor((timeRemaining % 60000) / 1000);
+                document.getElementById('countdown').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        // Автообновление данных
+        function scheduleUpdate() {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+            }
+            
+            updateTimer = setInterval(() => {
+                const selectedLayer = document.getElementById('layerSelect').value;
+                addSatelliteLayer(selectedLayer);
+                startCountdown();
+                console.log('Спутниковые данные обновлены:', new Date().toLocaleTimeString('ru-RU'));
+            }, UPDATE_INTERVAL);
+        }
+        
+        // Обработчик смены слоя
+        document.getElementById('layerSelect').addEventListener('change', (e) => {
+            addSatelliteLayer(e.target.value);
+        });
+        
+        // Инициализация
+        addSatelliteLayer('VIIRS_SNPP_CorrectedReflectance_TrueColor');
+        startCountdown();
+        scheduleUpdate();
+    </script>
+</body>
+</html>
