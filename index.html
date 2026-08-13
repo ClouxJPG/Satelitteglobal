@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Спутник + точный грозопеленгатор (Xweather)</title>
+    <title>Спутник + точный грозопеленгатор (OpenWeather)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -31,7 +31,7 @@
             cursor: pointer;
             font-size: 14px;
         }
-        .controls input[type="checkbox"], 
+        .controls input[type="checkbox"],
         .controls input[type="radio"] {
             margin-right: 8px;
         }
@@ -121,7 +121,7 @@
         
         <label>
             <input type="checkbox" id="lightning" checked> 
-            ⚡ Молнии (Xweather)
+            ⚡ Молнии (OpenWeather)
         </label>
     </div>
     
@@ -143,14 +143,11 @@
     </div>
 
     <script>
-        // Ключ OpenWeather (для слоёв)
+        // Твой рабочий ключ OpenWeather
         const OPENWEATHER_API = 'b5fd8a2df3a6857059b351884cf1d26b';
-
-        // Твой URL Xweather (Москва)
-        const XWEATHER_URL = "https://data.api.xweather.com/lightning/moscow?client_id=4mhK1fxpZtcksX4VLWP5o&client_secret=rMkWxaeYP2XMPPD9cpD8Lf7zJhErYNunVQzWtzz9";
         
         // Карта: тёмный базовый стиль
-        const map = L.map('map').setView([55.75, 37.61], 5);
+        const map = L.map('map').setView([55.75, 37.61], 5); // Москва по умолчанию
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '© CartoDB | © OpenStreetMap',
@@ -189,49 +186,45 @@
             }
         }
         
-        // Загрузка молний из Xweather (Москва)
-        async function loadLightningXweather() {
+        // Точный грозопеленгатор на OpenWeather Lightning API (архив за последние ~5 минут)
+        async function loadLightningOW() {
             if (!document.getElementById('lightning').checked) {
                 lightningGroup.clearLayers();
                 document.getElementById('lightning-count').textContent = '0';
                 return;
             }
-            
+
+            const center = map.getCenter();
+            const radiusKm = 50; // радиус поиска молний (до 50 км по доке)[6]
+
+            // Окно времени: последние 5 минут
+            const end = new Date();
+            const start = new Date(end.getTime() - 5 * 60 * 1000);
+
+            const startIso = start.toISOString();
+            const endIso = end.toISOString();
+
+            const url = `https://api.openweathermap.org/lightning/1.0/data?lat=${center.lat}&lon=${center.lng}&radius=${radiusKm}&start_date=${encodeURIComponent(startIso)}&end_date=${encodeURIComponent(endIso)}&apikey=${OPENWEATHER_API}`;
+
             try {
-                const response = await fetch(XWEATHER_URL);
+                const response = await fetch(url);
                 if (!response.ok) {
-                    console.error('Xweather HTTP error:', response.status, response.statusText);
+                    console.error('Lightning API error:', response.status, response.statusText);
                     document.getElementById('lightning-count').textContent = 'ошибка';
                     return;
                 }
 
                 const data = await response.json();
-                console.log('Xweather lightning raw data:', data);
-                
                 lightningGroup.clearLayers();
 
-                // ПОДСТРОЙКА ПОД ФОРМАТ.
-                // Здесь предполагаем, что Xweather вернёт массив объектов с полями lat/lon/time.
-                // Если структура другая — нужно будет поправить эти строки.
-
-                let strikes = [];
-
-                if (Array.isArray(data)) {
-                    strikes = data;
-                } else if (Array.isArray(data.strikes)) {
-                    strikes = data.strikes;
-                } else if (Array.isArray(data.data)) {
-                    strikes = data.data;
-                }
-
-                if (strikes.length === 0) {
+                if (!Array.isArray(data) || data.length === 0) {
                     document.getElementById('lightning-count').textContent = '0';
                     return;
                 }
 
-                strikes.forEach(strike => {
-                    const lat = strike.lat ?? strike.latitude;
-                    const lon = strike.lon ?? strike.longitude;
+                data.forEach(strike => {
+                    const lat = strike.lat;
+                    const lon = strike.lon;
 
                     if (typeof lat !== 'number' || typeof lon !== 'number') return;
 
@@ -239,12 +232,12 @@
                         radius: 9,
                         color: '#ffffff',     // яркий контур
                         fillColor: '#ffff00', // жёлтая заливка
-                        fillOpacity: 1.0,     // непрозрачные
+                        fillOpacity: 1.0,
                         weight: 2,
                         className: 'lightning-marker'
                     });
 
-                    const t = strike.time ?? strike.timestamp ?? strike.observed;
+                    const t = strike.datetime;
                     let timeStr = 'неизвестно';
                     if (t) {
                         try {
@@ -254,18 +247,23 @@
                         }
                     }
 
+                    const quality = strike.quality ?? 'n/a';
+                    const errorKm = strike.error ?? 'n/a';
+
                     marker.bindPopup(`
-                        <b>⚡ Молния (Xweather)</b><br>
+                        <b>⚡ Молния (OpenWeather)</b><br>
                         Время: ${timeStr}<br>
-                        Координаты: ${lat.toFixed(2)}, ${lon.toFixed(2)}
+                        Координаты: ${lat.toFixed(2)}, ${lon.toFixed(2)}<br>
+                        Качество: ${quality}<br>
+                        Погрешность: ${errorKm} км
                     `);
 
                     lightningGroup.addLayer(marker);
                 });
 
-                document.getElementById('lightning-count').textContent = strikes.length;
+                document.getElementById('lightning-count').textContent = data.length;
             } catch (error) {
-                console.error('Ошибка Xweather:', error);
+                console.error('Ошибка молний OpenWeather:', error);
                 document.getElementById('lightning-count').textContent = 'ошибка';
             }
         }
@@ -290,7 +288,7 @@
         document.getElementById('lightning').addEventListener('change', () => {
             if (document.getElementById('lightning').checked) {
                 map.addLayer(lightningGroup);
-                loadLightningXweather();
+                loadLightningOW();
             } else {
                 map.removeLayer(lightningGroup);
                 lightningGroup.clearLayers();
@@ -305,9 +303,10 @@
         
         // Старт: облака + молнии
         setSatelliteLayer('clouds');
-        loadLightningXweather();
-        setInterval(loadLightningXweather, 30000); // каждые 30 секунд
+        loadLightningOW();
+        setInterval(loadLightningOW, 5 * 60 * 1000); // каждые 5 минут (под окно данных)[6]
         setInterval(updateStatus, 1000);
+        map.on('moveend', loadLightningOW);
     </script>
 </body>
 </html>
