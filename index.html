@@ -2,244 +2,122 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Спутниковые данные + Грозопеленгатор</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <title>Тест API OpenWeather</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; width: 100%; }
-        #map { height: 100vh; width: 100%; }
-        .controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 15px;
+        body { font-family: Arial; padding: 20px; background: #1a1a2e; color: white; }
+        .result { 
+            background: #16213e; 
+            padding: 15px; 
+            margin: 10px 0; 
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            min-width: 200px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow: auto;
         }
-        .controls h3 { margin-bottom: 12px; font-size: 16px; }
-        .controls label { 
-            display: flex; 
-            align-items: center; 
-            margin: 8px 0; 
+        .success { border-left: 4px solid #00ff88; }
+        .error { border-left: 4px solid #ff4444; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
             cursor: pointer;
-            font-size: 14px;
+            background: #0f3460;
+            color: white;
+            border: none;
+            border-radius: 5px;
         }
-        .controls input[type="checkbox"], 
-        .controls input[type="radio"] {
-            margin-right: 8px;
-        }
-        .controls select { 
-            width: 100%; 
-            padding: 6px; 
-            margin: 8px 0;
-            font-size: 13px;
-        }
-        .status { 
-            position: absolute; 
-            bottom: 10px; 
-            left: 10px; 
-            z-index: 1000;
-            background: white;
-            padding: 12px 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            font-size: 13px;
-            line-height: 1.8;
-        }
-        .lightning-marker {
-            animation: flash 1s ease-in-out infinite;
-        }
-        @keyframes flash {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
+        button:hover { background: #1a4a7a; }
     </style>
 </head>
 <body>
-    <div id="map"></div>
+    <h1>🧪 Тест API ключа</h1>
+    <p>Ключ: <code>14a59e09e05d619c475cc278bffc4d89</code></p>
     
-    <div class="controls">
-        <h3>🌍 Слои карты</h3>
-        
-        <label>
-            <input type="checkbox" id="satellite" checked> 
-            Спутниковые данные
-        </label>
-        <select id="satellite-source">
-            <option value="clouds">☁️ Облака</option>
-            <option value="precip">🌧️ Осадки</option>
-            <option value="pressure">📊 Давление</option>
-            <option value="wind">💨 Ветер</option>
-            <option value="temp">🌡️ Температура</option>
-        </select>
-        
-        <label>
-            <input type="checkbox" id="lightning" checked> 
-            ⚡ Молнии (онлайн)
-        </label>
-    </div>
+    <button onclick="testClouds()">☁️ Тест облаков</button>
+    <button onclick="testLightning()">⚡ Тест молний</button>
+    <button onclick="testCurrentWeather()">🌤️ Текущая погода</button>
     
-    <div class="status">
-        <div>⏱️ <b>Обновлено:</b> <span id="last-update">--:--:--</span></div>
-        <div>⚡ <b>Молний:</b> <span id="lightning-count">0</span></div>
-        <div>📡 <b>Слой:</b> <span id="current-layer">--</span></div>
-    </div>
+    <div id="results"></div>
 
     <script>
-        // Ваш API ключ OpenWeather
-        const OPENWEATHER_API = '14a59e09e05d619c475cc278bffc4d89';
+        const API_KEY = '14a59e09e05d619c475cc278bffc4d89';
         
-        // Инициализация карты
-        const map = L.map('map').setView([45, 55], 5);
+        function addResult(title, data, isError = false) {
+            const div = document.createElement('div');
+            div.className = `result ${isError ? 'error' : 'success'}`;
+            div.innerHTML = `<strong>${title}</strong>\n${JSON.stringify(data, null, 2)}`;
+            document.getElementById('results').appendChild(div);
+        }
         
-        // Базовая карта (тёмная)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© CartoDB | © OSM',
-            maxZoom: 19
-        }).addTo(map);
-        
-        // Слои OpenWeather
-        const layerUrls = {
-            clouds: `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            precip: `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            pressure: `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            wind: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            temp: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`
-        };
-        
-        let activeLayer = null;
-        let activeTileLayer = null;
-        
-        // Группа для молний
-        const lightningGroup = L.layerGroup();
-        
-        // Установка спутникового слоя
-        function setSatelliteLayer(layerName) {
-            if (activeTileLayer) {
-                map.removeLayer(activeTileLayer);
-            }
-            
-            if (layerName && layerUrls[layerName]) {
-                activeTileLayer = L.tileLayer(layerUrls[layerName], {
-                    opacity: 0.75,
-                    maxZoom: 19
-                }).addTo(map);
+        async function testClouds() {
+            try {
+                const url = `https://tile.openweathermap.org/map/clouds_new/5/10/10.png?appid=${API_KEY}`;
+                const response = await fetch(url);
+                addResult('☁️ Облака (tile URL)', {
+                    url: url,
+                    status: response.status,
+                    statusText: response.statusText,
+                    contentType: response.headers.get('content-type'),
+                    size: response.headers.get('content-length')
+                });
                 
-                activeLayer = layerName;
-                document.getElementById('current-layer').textContent = layerName.toUpperCase();
+                // Проверка через image
+                const img = new Image();
+                img.onload = () => addResult('☁️ Изображение загрузилось', {
+                    width: img.width,
+                    height: img.height,
+                    src: url
+                });
+                img.onerror = () => addResult('☁️ Ошибка загрузки изображения', {
+                    url: url,
+                    status: 'image load failed'
+                }, true);
+                img.src = url;
+            } catch (e) {
+                addResult('☁️ Ошибка', e.message, true);
             }
         }
         
-        // Загрузка молний
-        async function loadLightning() {
-            if (!document.getElementById('lightning').checked) {
-                lightningGroup.clearLayers();
-                document.getElementById('lightning-count').textContent = '0';
-                return;
-            }
-            
-            const bounds = map.getBounds();
-            const center = bounds.getCenter();
-            const radius = Math.max(
-                map.distance(center, bounds.getNorthEast()),
-                map.distance(center, bounds.getSouthWest())
-            ) / 1000;
-            
-            const safeRadius = Math.min(radius, 5000);
-            
+        async function testLightning() {
             try {
-                const timestamp = Math.floor(Date.now() / 1000);
-                const url = `https://api.openweathermap.org/data/2.5/lightning?lat=${center.lat}&lon=${center.lng}&radius=${safeRadius}&dt=${timestamp}&appid=${OPENWEATHER_API}`;
+                const lat = 55.75;
+                const lon = 37.61;
+                const radius = 1000;
+                const dt = Math.floor(Date.now() / 1000);
+                const url = `https://api.openweathermap.org/data/2.5/lightning?lat=${lat}&lon=${lon}&radius=${radius}&dt=${dt}&appid=${API_KEY}`;
                 
                 const response = await fetch(url);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-                
                 const data = await response.json();
-                lightningGroup.clearLayers();
                 
-                if (data && Array.isArray(data) && data.length > 0) {
-                    data.forEach(strike => {
-                        const marker = L.circleMarker([strike.lat, strike.lon], {
-                            radius: 8,
-                            color: '#ff4500',
-                            fillColor: '#ffff00',
-                            fillOpacity: 1,
-                            weight: 2,
-                            className: 'lightning-marker'
-                        });
-                        
-                        const time = strike.dt ? new Date(strike.dt * 1000).toLocaleTimeString() : 'неизвестно';
-                        marker.bindPopup(`
-                            <b>⚡ Молния</b><br>
-                            Время: ${time}<br>
-                            Координаты: ${strike.lat.toFixed(2)}, ${strike.lon.toFixed(2)}
-                        `);
-                        
-                        lightningGroup.addLayer(marker);
-                    });
-                }
-                
-                document.getElementById('lightning-count').textContent = data ? data.length : 0;
-            } catch (error) {
-                console.error('Ошибка загрузки молний:', error);
-                document.getElementById('lightning-count').textContent = 'ошибка';
+                addResult('⚡ Молнии', {
+                    url: url,
+                    status: response.status,
+                    data: data
+                }, !response.ok);
+            } catch (e) {
+                addResult('⚡ Ошибка', e.message, true);
             }
         }
         
-        // Обработчик переключения спутника
-        document.getElementById('satellite').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                const selectedLayer = document.getElementById('satellite-source').value;
-                setSatelliteLayer(selectedLayer);
-            } else {
-                if (activeTileLayer) {
-                    map.removeLayer(activeTileLayer);
-                    activeTileLayer = null;
-                }
+        async function testCurrentWeather() {
+            try {
+                const lat = 55.75;
+                const lon = 37.61;
+                const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ru`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                addResult('🌤️ Текущая погода (Москва)', {
+                    url: url,
+                    status: response.status,
+                    data: data
+                }, !response.ok);
+            } catch (e) {
+                addResult('🌤️ Ошибка', e.message, true);
             }
-        });
-        
-        // Обработчик выбора слоя
-        document.getElementById('satellite-source').addEventListener('change', (e) => {
-            if (document.getElementById('satellite').checked) {
-                setSatelliteLayer(e.target.value);
-            }
-        });
-        
-        // Обработчик молний
-        document.getElementById('lightning').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                map.addLayer(lightningGroup);
-                loadLightning();
-            } else {
-                map.removeLayer(lightningGroup);
-                document.getElementById('lightning-count').textContent = '0';
-            }
-        });
-        
-        // Обновление времени
-        function updateStatus() {
-            const now = new Date();
-            document.getElementById('last-update').textContent = now.toLocaleTimeString('ru-RU');
         }
-        
-        // Запуск
-        setSatelliteLayer('clouds');
-        lightningGroup.addTo(map);
-        loadLightning();
-        
-        setInterval(loadLightning, 30000);
-        setInterval(updateStatus, 1000);
-        map.on('moveend', loadLightning);
     </script>
 </body>
 </html>
