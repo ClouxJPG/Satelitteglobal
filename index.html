@@ -4,36 +4,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>NOWCAST — Radar Composite</title>
+<title>NOWCAST Radar</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
 html,body,#map{width:100%;height:100%;margin:0}
-body{background:#17212a;color:#e8edf2;font-family:Arial,sans-serif;overflow:hidden}
-#map{background:#17212a}
+body{background:#17232d;color:#e8edf2;font-family:Arial,sans-serif;overflow:hidden}
+#map{background:#17232d}
 .leaflet-control-zoom{display:none}
 .leaflet-control-attribution{font-size:9px!important}
 .radar-pixels{
  image-rendering:pixelated!important;
  image-rendering:crisp-edges!important;
 }
-.top{
- position:absolute;z-index:1000;top:8px;left:8px;right:8px;
- display:flex;gap:6px;align-items:center
-}
-.brand,.clock,.product,.panel,.timeline{
- background:#17232df2;border:1px solid #536674;
- border-radius:3px;box-shadow:0 2px 8px #0005
-}
-.brand{padding:11px;font-weight:bold;font-size:13px;letter-spacing:1px}
+.top{position:absolute;z-index:1000;top:8px;left:8px;right:8px;display:flex;gap:6px;align-items:center}
+.brand,.clock,.product,.panel,.timeline{background:#17232df2;border:1px solid #536674;border-radius:3px;box-shadow:0 2px 8px #0005}
+.brand{padding:11px;font-size:13px;font-weight:bold;letter-spacing:1px}
 .product{flex:1;min-width:0;padding:10px 6px;color:white;font-size:12px}
 .clock{padding:11px 9px;font-size:12px;white-space:nowrap}
 select{background:#253541;color:white;border:1px solid #536674;border-radius:3px}
-.panel{
- position:absolute;z-index:1000;top:59px;left:8px;width:245px;
- max-height:calc(100% - 145px);overflow:auto;padding:12px;
- transition:transform .2s
-}
+.panel{position:absolute;z-index:1000;top:59px;left:8px;width:245px;max-height:calc(100% - 145px);overflow:auto;padding:12px;transition:transform .2s}
 .panel.closed{transform:translateX(-110%)}
 h3{font-size:11px;color:#a9bac6;letter-spacing:1px;margin:3px 0 12px}
 label{display:block;color:#c0cbd4;font-size:11px;margin:13px 0 6px}
@@ -43,20 +33,11 @@ input[type=range]{width:100%;accent-color:#61a9dc}
 .legend span{flex:1}
 .legend-labels{display:flex;justify-content:space-between;font-size:9px;color:#bdc8d0;margin-top:4px}
 .description{font-size:10px;line-height:1.5;color:#aebbc5;margin-top:12px}
-#toggle{
- position:absolute;z-index:1001;top:59px;left:260px;
- background:#17232d;color:white;border:1px solid #536674;
- border-radius:3px;padding:10px
-}
+#toggle{position:absolute;z-index:1001;top:59px;left:260px;background:#17232d;color:white;border:1px solid #536674;border-radius:3px;padding:10px}
 #toggle.shift{left:8px}
-.timeline{
- position:absolute;z-index:1000;bottom:8px;left:8px;right:8px;padding:9px
-}
+.timeline{position:absolute;z-index:1000;bottom:8px;left:8px;right:8px;padding:9px}
 .controls{display:flex;gap:5px;align-items:center}
-button{
- background:#293b48;color:#edf2f6;border:1px solid #617481;
- border-radius:3px;padding:8px 10px;font-size:13px
-}
+button{background:#293b48;color:#edf2f6;border:1px solid #617481;border-radius:3px;padding:8px 10px;font-size:13px}
 button:active{background:#456276}
 #frame{margin-left:auto;font-size:10px}
 #slider{margin:9px 0 2px}
@@ -82,11 +63,10 @@ button:active{background:#456276}
  <select class="product" id="product">
   <option value="dbz">Отражаемость 1 км</option>
   <option value="height">Высота ВГО</option>
-  <option value="zdr">Дифференциальная отражаемость ZDR</option>
+  <option value="zdr">ZDR</option>
   <option value="velocity">Доплеровская скорость</option>
   <option value="precip">Интенсивность осадков</option>
   <option value="accum">Сумма осадков</option>
-  <option value="phenomena">Опасные явления</option>
   <option value="nowcast">Nowcasting</option>
  </select>
  <div class="clock" id="clock">Сейчас</div>
@@ -94,33 +74,25 @@ button:active{background:#456276}
 
 <div class="panel" id="panel">
  <h3>Параметры отображения</h3>
- <label>Радиолокационный продукт</label>
+ <label>Продукт</label>
  <select id="product2">
   <option value="dbz">Отражаемость 1 км</option>
   <option value="height">Высота ВГО</option>
-  <option value="zdr">Дифференциальная отражаемость ZDR</option>
+  <option value="zdr">ZDR</option>
   <option value="velocity">Доплеровская скорость</option>
   <option value="precip">Интенсивность осадков</option>
   <option value="accum">Сумма осадков</option>
-  <option value="phenomena">Опасные явления</option>
   <option value="nowcast">Nowcasting</option>
  </select>
-
  <label>Прозрачность</label>
  <input id="opacity" type="range" min="10" max="100" value="90">
-
- <label>Размер радарного пикселя</label>
- <input id="pixelSize" type="range" min="1" max="3" value="1">
-
+ <label>Размер пикселя</label>
+ <input id="pixelSize" type="range" min="1" max="4" value="1">
  <label>Цветовая шкала</label>
  <div class="legend" id="legend"></div>
  <div class="legend-labels" id="legendLabels"></div>
-
  <div class="description" id="description"></div>
- <div class="description">
-  SYNTHETIC RADAR COMPOSITE<br>
-  Поле генерируется локально. Реальные радарные данные не используются.
- </div>
+ <div class="description">Синтетические данные. Запросы к Nowcast.ru отсутствуют.</div>
 </div>
 
 <button id="toggle">☰</button>
@@ -143,72 +115,48 @@ button:active{background:#456276}
 'use strict';
 
 /* =========================================================
-   NOWCAST — RUSSIA SYNTHETIC RADAR COMPOSITE
-
-   NO:
-   - predefined storm coordinates
-   - manually placed cells
-   - Gaussian storm objects
-   - hardcoded storm tracks
-   - external radar data
-   - Nowcast.ru requests
-
-   YES:
-   - continuous stochastic spatial field
-   - multiscale turbulent texture
-   - domain warping
-   - nonlinear echo formation
-   - discrete radar reflectivity classes
-   - continuous temporal advection
-   - full Russia geographic extent
-   - nearest-neighbor raster rendering
+   NOWCAST — GLOBAL SYNTHETIC RADAR
+   No predefined storm objects.
+   No storm coordinates.
+   No geographic clipping.
+   No external radar data.
 ========================================================= */
 
-/* =========================================================
-   1. MAP
-========================================================= */
-
-const RUSSIA_BOUNDS=[
- [41.0,19.0],
- [82.5,190.0]
-];
+/* MAP: обычная карта без ограничений */
 
 const map=L.map('map',{
  zoomControl:false,
  preferCanvas:true,
  zoomSnap:.25,
- maxBounds:RUSSIA_BOUNDS,
- maxBoundsViscosity:.75,
  worldCopyJump:false
-}).setView([61,94],3);
+}).setView([58,90],3);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
- minZoom:2,
- maxZoom:18,
- noWrap:true,
+ maxZoom:19,
+ noWrap:false,
  attribution:'© OpenStreetMap'
 }).addTo(map);
 
-/* =========================================================
-   2. RASTER
-========================================================= */
+/* RASTER: весь мир, без масок */
 
-const RW=1536;
-const RH=768;
+const W=2048;
+const H=1024;
 
-const raster=document.createElement('canvas');
-raster.width=RW;
-raster.height=RH;
+const canvas=document.createElement('canvas');
+canvas.width=W;
+canvas.height=H;
 
-const rctx=raster.getContext('2d',{alpha:true});
-rctx.imageSmoothingEnabled=false;
+const ctx=canvas.getContext('2d',{alpha:true});
+ctx.imageSmoothingEnabled=false;
 
-const image=rctx.createImageData(RW,RH);
+const image=ctx.createImageData(W,H);
 const pixels=image.data;
 
+const WORLD_BOUNDS=[[-85,-180],[85,180]];
+
 const overlay=L.imageOverlay(
- raster.toDataURL('image/png'),
- RUSSIA_BOUNDS,
+ canvas.toDataURL('image/png'),
+ WORLD_BOUNDS,
  {
   opacity:.9,
   interactive:false,
@@ -217,57 +165,7 @@ const overlay=L.imageOverlay(
 ).addTo(map);
 
 /* =========================================================
-   3. RUSSIA MASK
-
-   Упрощённая географическая маска.
-   Не является точной государственной границей.
-========================================================= */
-
-const outline=[
- [19,54],[22,55],[26,54],[29,53],[32,51],[35,49],
- [38,47],[42,46],[46,44],[50,43],[54,42],[58,42],
- [63,43],[68,44],[73,43],[78,44],[83,46],[88,48],
- [93,49],[98,50],[103,50],[108,49],[113,49],
- [118,48],[123,48],[128,48],[131,43],[135,43],
- [139,46],[143,48],[147,50],[152,52],[157,54],
- [162,56],[167,58],[172,60],[177,62],[183,64],
- [190,65],[190,75],[183,76],[176,74],[168,72],
- [160,70],[152,71],[144,72],[136,72],[128,73],
- [120,73],[112,73],[104,74],[96,75],[88,75],
- [80,74],[73,72],[66,71],[59,70],[53,69],
- [47,68],[42,68],[37,67],[33,66],[29,64],
- [26,62],[23,60],[20,58],[19,56]
-];
-
-const maskCanvas=document.createElement('canvas');
-maskCanvas.width=RW;
-maskCanvas.height=RH;
-const mctx=maskCanvas.getContext('2d');
-
-function toRaster(lon,lat){
- return [
-  (lon-19)/(190-19)*RW,
-  (82.5-lat)/(82.5-41)*RH
- ];
-}
-
-mctx.beginPath();
-outline.forEach((p,i)=>{
- const q=toRaster(p[0],p[1]);
- if(i===0)mctx.moveTo(q[0],q[1]);
- else mctx.lineTo(q[0],q[1]);
-});
-mctx.closePath();
-mctx.fillStyle='#fff';
-mctx.fill();
-
-const maskData=mctx.getImageData(0,0,RW,RH).data;
-
-/* =========================================================
-   4. EXACT GIMET PALETTES
-
-   Values and RGB colors from:
-   savelov/radar-wms/baltrad_wms.cfg.template
+   PALETTES
 ========================================================= */
 
 const palettes={
@@ -275,118 +173,67 @@ const palettes={
   name:'Отражаемость, dBZ',
   values:[-30,-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70],
   colors:[
-   [220,220,220],[167,167,167],[171,210,235],
-   [206,255,153],[84,255,58],[0,170,255],
-   [1,77,255],[0,0,207],[0,0,127],
-   [255,255,0],[255,128,0],[255,61,55],
-   [255,0,0],[73,221,0],[0,170,0],
-   [245,0,245],[170,0,255],[113,0,0]
+   '#dcdcdc','#a7a7a7','#abd2eb','#ceff99',
+   '#54ff3a','#00aaff','#014dff','#0000cf',
+   '#00007f','#ffff00','#ff8000','#ff3d37',
+   '#ff0000','#49dd00','#00aa00','#f500f5',
+   '#aa00ff','#710000'
   ],
-  description:'GIMET DBZH — 18 цветовых градаций от −30 до 70 dBZ.'
+  description:'GIMET DBZH: 18 цветовых ступеней от −30 до 70 dBZ.'
  },
-
  height:{
-  name:'Высота ВГО, км',
-  values:[0,.2,.5,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
-  colors:[
-   [7,254,164],[27,243,107],[27,191,128],
-   [34,149,112],[37,113,100],[22,65,55],
-   [0,204,235],[3,135,229],[3,54,206],
-   [5,22,109],[211,181,31],[217,74,27],
-   [216,27,17],[132,5,11],[67,168,4],
-   [3,63,3],[161,17,72],[218,47,158]
-  ],
-  description:'GIMET HEIGHT — высота верхней границы облаков.'
+  name:'Высота ВГО',
+  values:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+  colors:['#07fea4','#1bf36b','#1bbf80','#229570','#257164','#164137','#00cceb','#0387e5','#0336ce','#05166d','#d3b51f','#d94a1b','#d81b11','#84050b','#43a804','#033f03','#a11148'],
+  description:'Высота верхней границы облаков. Синтетическое поле.'
  },
-
  zdr:{
   name:'ZDR, dB',
-  values:[-5,-4,-3,-2.5,-2,-1,-.5,0,.5,1,1.5,2,2.5,3,3.5,4,5],
-  colors:[
-   [33,40,148],[15,83,128],[29,191,255],
-   [47,221,255],[114,255,251],[115,255,136],
-   [123,184,69],[0,134,0],[254,225,0],
-   [223,192,77],[211,152,2],[254,169,166],
-   [231,89,79],[248,22,1],[186,11,11],
-   [190,150,174],[127,89,106]
-  ],
-  description:'GIMET ZDR — дифференциальная отражаемость.'
+  values:[-5,-4,-3,-2.5,-2,-1,0,1,2,3,4,5],
+  colors:['#212894','#0f5380','#1dbfff','#2fddff','#72fffb','#73ff88','#008600','#fee100','#d3a002','#e7594f','#f81601','#7f596a'],
+  description:'Дифференциальная отражаемость. Синтетическое поле.'
  },
-
  velocity:{
   name:'Скорость, м/с',
-  values:[-50,-40,-30,-25,-20,-15,-10,-5,-.5,0,.5,5,10,15,20,25,30,40,50],
-  colors:[
-   [85,179,207],[71,135,158],[33,81,32],
-   [53,127,32],[0,179,0],[51,216,51],
-   [79,248,73],[155,203,171],[187,252,218],
-   [255,255,255],[254,0,254],[177,0,177],
-   [125,0,125],[147,0,0],[179,0,0],
-   [204,0,0],[236,0,0],[255,60,60],[255,121,111]
-  ],
-  description:'GIMET VELOCITY — радиальная скорость.'
+  values:[-50,-40,-30,-20,-10,-5,0,5,10,20,30,40,50],
+  colors:['#55b3cf','#47879e','#215120','#358020','#00b300','#33d833','#9bcba9','#ffffff','#fe00fe','#7d007d','#b30000','#ec0000','#ff796f'],
+  description:'Радиальная скорость. Синтетическое поле.'
  },
-
  precip:{
   name:'Интенсивность, мм/ч',
   values:[.1,.3,.5,1,3,5,7,10,20,30,50,100],
-  colors:[
-   [155,155,155],[135,135,135],[0,85,255],
-   [0,0,127],[255,255,0],[200,239,4],
-   [255,170,0],[255,85,0],[255,0,0],
-   [128,255,128],[0,170,0],[255,131,245],[208,0,208]
-  ],
-  description:'GIMET PRECIP — интенсивность осадков.'
+  colors:['#9b9b9b','#878787','#0055ff','#00007f','#ffff00','#c8ef04','#ffaa00','#ff5500','#ff0000','#80ff80','#00aa00','#ff83f5'],
+  description:'Интенсивность осадков. Производная от отражаемости.'
  },
-
  accum:{
   name:'Сумма осадков, мм',
   values:[.05,.1,.3,.5,1,2,3,5,7,10,20,30,50,100,200,300,500],
-  colors:[
-   [255,170,255],[208,232,255],[0,170,255],
-   [0,76,255],[0,0,197],[0,0,127],
-   [255,255,0],[255,128,1],[229,74,12],
-   [255,0,0],[0,190,0],[0,117,0],
-   [255,0,255],[203,0,156],[170,0,127],
-   [0,0,0],[162,101,166],[112,83,113]
-  ],
-  description:'GIMET SUMM — накопленная сумма осадков.'
+  colors:['#ffaaff','#d0e8ff','#00aaff','#004cff','#0000c5','#00007f','#ffff00','#ff8001','#e54a0c','#ff0000','#00be00','#007500','#ff00ff','#cb009c','#aa007f','#000000','#a265a6'],
+  description:'Накопленная сумма осадков. Синтетическое поле.'
  },
-
- phenomena:{
-  name:'Опасные явления',
-  values:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
-  colors:[
-   [156,170,177],[162,198,255],[70,255,147],
-   [0,194,90],[0,152,0],[255,255,128],
-   [62,136,255],[1,56,255],[0,0,116],
-   [255,170,127],[255,85,127],[255,0,0],
-   [204,102,0],[136,68,0],[95,0,0],
-   [255,170,255],[255,85,255],[199,0,199],
-   [63,63,95]
-  ],
-  description:'GIMET PHENOMENA — классификация метеорологических явлений.'
- },
-
  nowcast:{
-  name:'Nowcasting, %',
-  values:[0,20,40,60,80,100],
-  colors:[
-   [204,204,204],[108,235,243],[64,152,87],
-   [241,243,90],[223,196,10],[235,149,26]
-  ],
-  description:'GIMET NOWCAST — процентная шкала.'
+  name:'Nowcasting, dBZ',
+  values:[-30,-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70],
+  colors:['#dcdcdc','#a7a7a7','#abd2eb','#ceff99','#54ff3a','#00aaff','#014dff','#0000cf','#00007f','#ffff00','#ff8000','#ff3d37','#ff0000','#49dd00','#00aa00','#f500f5','#aa00ff','#710000'],
+  description:'Прогнозное синтетическое поле отражаемости.'
  }
 };
 
 /* =========================================================
-   5. RANDOM FIELD ENGINE
-
-   Нет центров штормов.
-   Нет списка объектов.
-   Нет заранее заданных координат.
-   Структуры формируются из пространственного случайного поля.
+   RANDOM FIELD
 ========================================================= */
+
+function clamp(v,a,b){
+ return Math.max(a,Math.min(b,v));
+}
+
+function mix(a,b,t){
+ return a+(b-a)*t;
+}
+
+function fade(t){
+ return t*t*t*(t*(t*6-15)+10);
+}
 
 function hash(x,y,z){
  let n=Math.imul(x|0,374761393);
@@ -397,139 +244,78 @@ function hash(x,y,z){
  return (n>>>0)/4294967295;
 }
 
-function fade(t){
- return t*t*t*(t*(t*6-15)+10);
-}
-
 function noise3(x,y,z){
- const ix=Math.floor(x);
- const iy=Math.floor(y);
- const iz=Math.floor(z);
+ const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z);
+ const fx=fade(x-ix),fy=fade(y-iy),fz=fade(z-iz);
 
- const fx=fade(x-ix);
- const fy=fade(y-iy);
- const fz=fade(z-iz);
+ const a=mix(hash(ix,iy,iz),hash(ix+1,iy,iz),fx);
+ const b=mix(hash(ix,iy+1,iz),hash(ix+1,iy+1,iz),fx);
+ const c=mix(hash(ix,iy,iz+1),hash(ix+1,iy,iz+1),fx);
+ const d=mix(hash(ix,iy+1,iz+1),hash(ix+1,iy+1,iz+1),fx);
 
- const a0=hash(ix,iy,iz);
- const a1=hash(ix+1,iy,iz);
- const b0=hash(ix,iy+1,iz);
- const b1=hash(ix+1,iy+1,iz);
-
- const c0=hash(ix,iy,iz+1);
- const c1=hash(ix+1,iy,iz+1);
- const d0=hash(ix,iy+1,iz+1);
- const d1=hash(ix+1,iy+1,iz+1);
-
- const low=mix(
-  mix(a0,a1,fx),
-  mix(b0,b1,fx),fy
- );
-
- const high=mix(
-  mix(c0,c1,fx),
-  mix(d0,d1,fx),fy
- );
-
- return mix(low,high,fz)*2-1;
-}
-
-function mix(a,b,t){
- return a+(b-a)*t;
+ return (mix(mix(a,b,fy),mix(c,d,fy),fz)*2)-1;
 }
 
 function fbm(x,y,t){
- let sum=0;
- let amp=.52;
- let norm=0;
-
- const scales=[
-  [1,1],
-  [2.1,2.0],
-  [4.3,4.0],
-  [8.4,8.1],
-  [16.2,15.7],
-  [31.5,30.8]
- ];
-
- for(let i=0;i<scales.length;i++){
-  const s=scales[i];
-  sum+=noise3(x*s[0],y*s[1],t*(.55+i*.08))*amp;
+ let sum=0,amp=.5,norm=0;
+ for(let i=0;i<6;i++){
+  const scale=Math.pow(2,i);
+  sum+=noise3(x*scale,y*scale,t*(.6+i*.09))*amp;
   norm+=amp;
-  amp*=.51;
+  amp*=.5;
  }
-
  return sum/norm;
 }
 
-/* Пространственное поле с деформацией и адвекцией */
-function radarField(x,y,t){
- const driftX=t*.19;
- const driftY=t*.055;
+/* Глобальное поле: нет центров и объектов */
 
- const px=x-driftX;
- const py=y-driftY;
+function field(x,y,t){
+ const driftX=t*.16;
+ const driftY=t*.045;
 
- const wx=fbm(px*.75+17,py*.75-8,t*.025);
- const wy=fbm(px*.75-11,py*.75+23,t*.025);
+ x-=driftX;
+ y-=driftY;
 
- const xx=px+wx*1.8;
- const yy=py+wy*1.8;
+ const warpX=fbm(x*.65+19,y*.65-7,t*.025);
+ const warpY=fbm(x*.65-13,y*.65+29,t*.025);
 
- const broad=fbm(xx*.72,yy*.72,t*.035);
- const medium=fbm(xx*2.0,yy*2.0,t*.065);
- const fine=fbm(xx*5.0,yy*5.0,t*.11);
- const micro=fbm(xx*11.0,yy*11.0,t*.16);
- const grain=fbm(xx*23.0,yy*23.0,t*.22);
+ const xx=x+warpX*1.7;
+ const yy=y+warpY*1.7;
 
- let field=
-  broad*.48+
-  medium*.28+
-  fine*.15+
-  micro*.065+
-  grain*.025;
+ const large=fbm(xx*.8,yy*.8,t*.035);
+ const medium=fbm(xx*2.2,yy*2.2,t*.065);
+ const small=fbm(xx*5.5,yy*5.5,t*.11);
+ const fine=fbm(xx*12,yy*12,t*.17);
+ const grain=fbm(xx*24,yy*24,t*.23);
 
- /* Неоднородность фронтальных структур */
- const filament=fbm(xx*.9+yy*.25,yy*1.8-xx*.13,t*.045);
- field+=filament*.12;
+ let v=large*.50+medium*.28+small*.14+fine*.06+grain*.025;
 
- /* Прерывистая мелкомасштабная структура */
- const breakup=fbm(xx*7.1+37,yy*7.1-19,t*.19);
- field+=breakup*.055;
+ const bands=fbm(xx*.9+yy*.25,yy*1.8-xx*.12,t*.04);
+ v+=bands*.12;
 
- return field;
+ const breakup=fbm(xx*8.5+37,yy*8.5-19,t*.18);
+ v+=breakup*.07;
+
+ return v;
 }
-
-/* =========================================================
-   6. REFLECTIVITY VALUE
-
-   Полный диапазон GIMET:
-   -30 ... 70 dBZ
-
-   Классы не интерполируются.
-========================================================= */
 
 function reflectivity(x,y,t){
- const f=radarField(x,y,t);
+ const f=field(x,y,t);
 
- const normalized=clamp((f+.35)/1.15,0,1);
+ /* Нелинейное распределение отражаемости */
+ const n=clamp((f+.19)/.82,0,1);
 
- if(normalized<.12)return null;
+ if(n<.12)return null;
 
- const dbz=-30+100*Math.pow(normalized,.68);
-
- return clamp(dbz,-30,70);
-}
-
-function clamp(v,a,b){
- return Math.max(a,Math.min(b,v));
+ return -30+100*Math.pow(n,.75);
 }
 
 /* =========================================================
-   7. PALETTE LOOKUP
+   COLOR LOOKUP
 ========================================================= */
 
-function paletteColor(value,palette){
- const p=palettes[palette];
+function getColor(value,product){
+ const p=palettes[product];
  let index=0;
 
  for(let i=0;i<p.values.length;i++){
@@ -539,146 +325,105 @@ function paletteColor(value,palette){
  return p.colors[index];
 }
 
-/* =========================================================
-   8. PRODUCTS
-========================================================= */
-
-function productValue(dbz,x,y,t,product){
+function valueFor(dbz,x,y,t,product){
  if(dbz===null)return null;
 
- if(product==='dbz')return dbz;
+ switch(product){
+  case 'dbz':
+  case 'nowcast':
+   return dbz;
 
- if(product==='height'){
-  return clamp((dbz+20)*.36,0,15);
+  case 'height':
+   return clamp((dbz+20)*.36,0,16);
+
+  case 'zdr':
+   return clamp(fbm(x*.025,y*.025,t*.04)*4,-5,5);
+
+  case 'velocity':
+   return fbm(x*.015+12,y*.015-8,t*.04)*50;
+
+  case 'precip':
+   return Math.pow(10,dbz/10)/200;
+
+  case 'accum':
+   return Math.max(0,(dbz+10)*.75);
  }
-
- if(product==='zdr'){
-  const v=fbm(x*.015,y*.015,t*.04);
-  return clamp(v*5, -5,5);
- }
-
- if(product==='velocity'){
-  const v=fbm(x*.009+14,y*.009-8,t*.04);
-  return v*50;
- }
-
- if(product==='precip'){
-  const z=Math.pow(10,dbz/10);
-  return Math.pow(z/200,1/1.6);
- }
-
- if(product==='accum'){
-  return Math.max(0,(dbz+10)*.75);
- }
-
- if(product==='phenomena'){
-  if(dbz<15)return 2;
-  if(dbz<25)return 6;
-  if(dbz<35)return 9;
-  if(dbz<45)return 10;
-  if(dbz<52)return 12;
-  if(dbz<60)return 13;
-  return 14;
- }
-
- if(product==='nowcast'){
-  return clamp((dbz+30)/100*100,0,100);
- }
-
  return dbz;
 }
 
 /* =========================================================
-   9. RASTER RENDER
+   RENDER
 ========================================================= */
 
 let frame=36;
-let playing=false;
 let timer=null;
-let lastFrame=-1;
-let rendering=false;
 
 function render(){
- if(rendering)return;
- rendering=true;
-
  const product=$('product').value;
- const t=frame*.12;
+ const time=frame*.13;
  const block=+$('pixelSize').value;
 
- for(let y=0;y<RH;y+=block){
-  for(let x=0;x<RW;x+=block){
+ for(let y=0;y<H;y+=block){
+  for(let x=0;x<W;x+=block){
+   const nx=x/W*16;
+   const ny=y/H*8;
 
-   const index=(y*RW+x)*4;
-
-   if(maskData[index+3]===0){
-    for(let py=y;py<Math.min(y+block,RH);py++){
-     for(let px=x;px<Math.min(x+block,RW);px++){
-      const i=(py*RW+px)*4;
-      pixels[i+3]=0;
-     }
-    }
-    continue;
-   }
-
-   const nx=x/RW*12;
-   const ny=y/RH*6;
-
-   let dbz=reflectivity(nx,ny,t);
+   let dbz=reflectivity(nx,ny,time);
 
    if(product==='nowcast'){
-    dbz=reflectivity(nx,ny,t+1.7);
+    dbz=reflectivity(nx,ny,time+1.4);
    }
 
-   const value=productValue(dbz,nx,ny,t,product);
+   const value=valueFor(dbz,nx,ny,time,product);
 
-   if(value===null){
-    for(let py=y;py<Math.min(y+block,RH);py++){
-     for(let px=x;px<Math.min(x+block,RW);px++){
-      const i=(py*RW+px)*4;
+   let color=null;
+
+   if(value!==null){
+    color=getColor(value,product);
+   }
+
+   const rgb=color?[
+    parseInt(color.slice(1,3),16),
+    parseInt(color.slice(3,5),16),
+    parseInt(color.slice(5,7),16)
+   ]:null;
+
+   for(let py=y;py<Math.min(y+block,H);py++){
+    for(let px=x;px<Math.min(x+block,W);px++){
+     const i=(py*W+px)*4;
+
+     if(!rgb){
       pixels[i+3]=0;
+     }else{
+      pixels[i]=rgb[0];
+      pixels[i+1]=rgb[1];
+      pixels[i+2]=rgb[2];
+      pixels[i+3]=255;
      }
-    }
-    continue;
-   }
-
-   const color=paletteColor(value,product);
-   const alpha=255;
-
-   for(let py=y;py<Math.min(y+block,RH);py++){
-    for(let px=x;px<Math.min(x+block,RW);px++){
-     const i=(py*RW+px)*4;
-     pixels[i]=color[0];
-     pixels[i+1]=color[1];
-     pixels[i+2]=color[2];
-     pixels[i+3]=alpha;
     }
    }
   }
  }
 
- rctx.putImageData(image,0,0);
+ ctx.putImageData(image,0,0);
 
- /* Передаём растр без сглаживания */
- overlay.setUrl(raster.toDataURL('image/png'));
+ overlay.setUrl(canvas.toDataURL('image/png'));
  overlay.setOpacity(+$('opacity').value/100);
 
  $('frame').textContent=frame+' / 36';
  $('slider').value=frame;
  $('clock').textContent=frame===36?'Сейчас':'−'+((36-frame)*10)+' мин';
-
- rendering=false;
 }
 
 /* =========================================================
-   10. CONTROLS
+   UI
 ========================================================= */
 
 function updateLegend(){
  const p=palettes[$('product').value];
 
  $('legend').innerHTML=p.colors.map(c=>
-  `<span style="background:rgb(${c.join(',')})"></span>`
+  `<span style="background:${c}"></span>`
  ).join('');
 
  $('legendLabels').innerHTML=
@@ -689,15 +434,15 @@ function updateLegend(){
  $('description').textContent=p.description;
 }
 
-function changeProduct(v){
+function setProduct(v){
  $('product').value=v;
  $('product2').value=v;
  updateLegend();
  render();
 }
 
-$('product').onchange=e=>changeProduct(e.target.value);
-$('product2').onchange=e=>changeProduct(e.target.value);
+$('product').onchange=e=>setProduct(e.target.value);
+$('product2').onchange=e=>setProduct(e.target.value);
 
 $('opacity').oninput=()=>{
  overlay.setOpacity(+$('opacity').value/100);
@@ -711,39 +456,30 @@ $('toggle').onclick=()=>{
 };
 
 function stop(){
- playing=false;
  clearInterval(timer);
  timer=null;
 }
 
-function start(direction){
+function play(direction){
  stop();
- playing=true;
-
  timer=setInterval(()=>{
   frame+=direction;
-
   if(frame>36)frame=0;
   if(frame<0)frame=36;
-
   render();
  },350);
 }
 
 $('prev').onclick=()=>{
- stop();
- frame=Math.max(0,frame-1);
- render();
+ stop();frame=Math.max(0,frame-1);render();
 };
 
 $('next').onclick=()=>{
- stop();
- frame=Math.min(36,frame+1);
- render();
+ stop();frame=Math.min(36,frame+1);render();
 };
 
-$('back').onclick=()=>start(-1);
-$('forward').onclick=()=>start(1);
+$('back').onclick=()=>play(-1);
+$('forward').onclick=()=>play(1);
 $('pause').onclick=stop;
 
 $('slider').oninput=e=>{
@@ -752,16 +488,10 @@ $('slider').oninput=e=>{
  render();
 };
 
-/* =========================================================
-   11. INITIALIZE
-========================================================= */
-
 updateLegend();
 render();
 
-window.addEventListener('resize',()=>{
- map.invalidateSize();
-});
+window.addEventListener('resize',()=>map.invalidateSize());
 </script>
 </body>
 </html>
