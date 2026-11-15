@@ -1,514 +1,767 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Спутник + грозопеленгатор + радары + GIF</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; width: 100%; background: #000; }
-        #map { height: 100vh; width: 100%; }
-
-        .controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.85);
-            color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
-            min-width: 260px;
-        }
-        .controls h3 { margin-bottom: 10px; font-size: 16px; }
-        .controls label { 
-            display: flex; 
-            align-items: center; 
-            margin: 6px 0; 
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .controls input[type="checkbox"],
-        .controls input[type="radio"] {
-            margin-right: 8px;
-        }
-        .controls select { 
-            width: 100%; 
-            padding: 6px; 
-            margin: 6px 0;
-            font-size: 13px;
-            background: #111;
-            color: #fff;
-            border: 1px solid #444;
-            border-radius: 4px;
-        }
-        .radar-controls {
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid #444;
-            font-size: 12px;
-        }
-
-        .status { 
-            position: absolute; 
-            bottom: 10px; 
-            left: 10px; 
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.85);
-            color: #fff;
-            padding: 12px 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
-            font-size: 13px;
-            line-height: 1.8;
-        }
-
-        .lightning-marker {
-            animation: flash 1s ease-in-out infinite;
-        }
-        @keyframes flash {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
-        .tvg-legend {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: rgba(0,0,0,0.85);
-            color: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
-            font-size: 12px;
-            width: 190px;
-        }
-        .tvg-bar {
-            height: 12px;
-            width: 100%;
-            background: linear-gradient(
-                to right,
-                #ff8800 0%,    /* -30°C */
-                #ff0000 25%,   /* -40°C */
-                #ff00ff 50%,   /* -50°C */
-                #8000ff 75%,   /* -70°C */
-                #0000ff 100%   /* -90°C */
-            );
-            margin-bottom: 6px;
-            border-radius: 4px;
-        }
-        .tvg-labels {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        /* ===== GIF-слой поверх карты ===== */
-        .gif-layer {
-            position: absolute;
-            inset: 0;
-            z-index: 1500;
-            display: none; /* по умолчанию выключен */
-        }
-        .gif-layer-background {
-            position: absolute;
-            inset: 0;
-            /* однообразный фон под радар, тёмный космос */
-            background: radial-gradient(circle at center, #0b1b2b 0%, #02060b 60%, #000000 100%);
-        }
-        .gif-layer-toolbar {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0,0,0,0.8);
-            padding: 8px 12px;
-            border-radius: 10px;
-            border: 1px solid #1e3b5a;
-            color: #fff;
-            font-size: 13px;
-        }
-        .gif-toolbar-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .gif-toolbar-title span.icon {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #00ff88;
-            box-shadow: 0 0 8px #00ff88;
-        }
-        .gif-toolbar-buttons button {
-            padding: 4px 8px;
-            font-size: 12px;
-            background: #111c2b;
-            color: #fff;
-            border: 1px solid #35557a;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .gif-toolbar-buttons button:hover {
-            background: #18263a;
-        }
-
-        .gif-container {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            touch-action: none; /* сами обрабатываем pinch/rotate */
-        }
-        .gif-inner {
-            transform-origin: center center;
-            transition: transform 0.05s linear;
-            box-shadow: 0 0 40px rgba(0, 255, 136, 0.25);
-            border-radius: 12px;
-        }
-        .gif-inner img {
-            max-width: 90vw;
-            max-height: 75vh;
-            display: block;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NOWCAST — Radar Composite</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+html,body,#map{width:100%;height:100%;margin:0}
+body{background:#17212a;color:#e8edf2;font-family:Arial,sans-serif;overflow:hidden}
+#map{background:#17212a}
+.leaflet-control-zoom{display:none}
+.leaflet-control-attribution{font-size:9px!important}
+.radar-pixels{
+ image-rendering:pixelated!important;
+ image-rendering:crisp-edges!important;
+}
+.top{
+ position:absolute;z-index:1000;top:8px;left:8px;right:8px;
+ display:flex;gap:6px;align-items:center
+}
+.brand,.clock,.product,.panel,.timeline{
+ background:#17232df2;border:1px solid #536674;
+ border-radius:3px;box-shadow:0 2px 8px #0005
+}
+.brand{padding:11px;font-weight:bold;font-size:13px;letter-spacing:1px}
+.product{flex:1;min-width:0;padding:10px 6px;color:white;font-size:12px}
+.clock{padding:11px 9px;font-size:12px;white-space:nowrap}
+select{background:#253541;color:white;border:1px solid #536674;border-radius:3px}
+.panel{
+ position:absolute;z-index:1000;top:59px;left:8px;width:245px;
+ max-height:calc(100% - 145px);overflow:auto;padding:12px;
+ transition:transform .2s
+}
+.panel.closed{transform:translateX(-110%)}
+h3{font-size:11px;color:#a9bac6;letter-spacing:1px;margin:3px 0 12px}
+label{display:block;color:#c0cbd4;font-size:11px;margin:13px 0 6px}
+.panel select{width:100%;padding:8px}
+input[type=range]{width:100%;accent-color:#61a9dc}
+.legend{display:flex;height:15px;margin-top:8px}
+.legend span{flex:1}
+.legend-labels{display:flex;justify-content:space-between;font-size:9px;color:#bdc8d0;margin-top:4px}
+.description{font-size:10px;line-height:1.5;color:#aebbc5;margin-top:12px}
+#toggle{
+ position:absolute;z-index:1001;top:59px;left:260px;
+ background:#17232d;color:white;border:1px solid #536674;
+ border-radius:3px;padding:10px
+}
+#toggle.shift{left:8px}
+.timeline{
+ position:absolute;z-index:1000;bottom:8px;left:8px;right:8px;padding:9px
+}
+.controls{display:flex;gap:5px;align-items:center}
+button{
+ background:#293b48;color:#edf2f6;border:1px solid #617481;
+ border-radius:3px;padding:8px 10px;font-size:13px
+}
+button:active{background:#456276}
+#frame{margin-left:auto;font-size:10px}
+#slider{margin:9px 0 2px}
+.times{display:flex;justify-content:space-between;color:#aebdc7;font-size:9px}
+@media(max-width:600px){
+ .top{top:6px;left:6px;right:6px;gap:4px}
+ .brand{padding:10px 7px;font-size:11px}
+ .product{font-size:10px;padding:9px 3px}
+ .clock{font-size:10px;padding:10px 6px}
+ .panel{top:51px;left:6px;width:225px;max-height:calc(100% - 130px)}
+ #toggle{top:51px;left:235px}
+ #toggle.shift{left:6px}
+ .timeline{left:6px;right:6px;bottom:6px}
+ button{padding:8px 9px}
+}
+</style>
 </head>
 <body>
-    <div id="map"></div>
-    
-    <div class="controls">
-        <h3>🌍 Слои карты</h3>
-        
-        <label>
-            <input type="checkbox" id="satellite" checked> 
-            Спутниковые / погодные данные
-        </label>
-        <select id="satellite-source">
-            <option value="clouds">☁️ Облака</option>
-            <option value="precip">🌧️ Осадки (модель)</option>
-            <option value="pressure">📊 Давление</option>
-            <option value="wind">💨 Ветер</option>
-            <option value="temp">🌡️ Температура</option>
-        </select>
-        
-        <label>
-            <input type="checkbox" id="lightning" checked> 
-            ⚡ Молнии (OpenWeather)
-        </label>
+<div id="map"></div>
 
-        <label>
-            <input type="checkbox" id="radar-librewxr"> 
-            🌧️ Радар осадков (LibreWXR)
-        </label>
+<div class="top">
+ <div class="brand">NOWCAST</div>
+ <select class="product" id="product">
+  <option value="dbz">Отражаемость 1 км</option>
+  <option value="height">Высота ВГО</option>
+  <option value="zdr">Дифференциальная отражаемость ZDR</option>
+  <option value="velocity">Доплеровская скорость</option>
+  <option value="precip">Интенсивность осадков</option>
+  <option value="accum">Сумма осадков</option>
+  <option value="phenomena">Опасные явления</option>
+  <option value="nowcast">Nowcasting</option>
+ </select>
+ <div class="clock" id="clock">Сейчас</div>
+</div>
 
-        <label>
-            <input type="checkbox" id="model-precip"> 
-            🌀 Модель осадков (фон)
-        </label>
+<div class="panel" id="panel">
+ <h3>Параметры отображения</h3>
+ <label>Радиолокационный продукт</label>
+ <select id="product2">
+  <option value="dbz">Отражаемость 1 км</option>
+  <option value="height">Высота ВГО</option>
+  <option value="zdr">Дифференциальная отражаемость ZDR</option>
+  <option value="velocity">Доплеровская скорость</option>
+  <option value="precip">Интенсивность осадков</option>
+  <option value="accum">Сумма осадков</option>
+  <option value="phenomena">Опасные явления</option>
+  <option value="nowcast">Nowcasting</option>
+ </select>
 
-        <label>
-            <input type="checkbox" id="gif-layer-toggle"> 
-            🎞️ GIF радар (Meteoinfo)
-        </label>
-    </div>
-    
-    <div class="status">
-        <div>⏱️ <b>Обновлено:</b> <span id="last-update">--:--:--</span></div>
-        <div>⚡ <b>Молний:</b> <span id="lightning-count">0</span></div>
-        <div>📡 <b>Слой:</b> <span id="current-layer">--</span></div>
-    </div>
+ <label>Прозрачность</label>
+ <input id="opacity" type="range" min="10" max="100" value="90">
 
-    <div class="tvg-legend">
-        <div><b>TVG (°C)</b> верхняя граница облака</div>
-        <div class="tvg-bar"></div>
-        <div class="tvg-labels">
-            <span>-30</span>
-            <span>-50</span>
-            <span>-70</span>
-            <span>-90</span>
-        </div>
-    </div>
+ <label>Размер радарного пикселя</label>
+ <input id="pixelSize" type="range" min="1" max="3" value="1">
 
-    <!-- ===== GIF-слой поверх карты ===== -->
-    <div class="gif-layer" id="gif-layer">
-        <div class="gif-layer-background"></div>
-        <div class="gif-layer-toolbar">
-            <div class="gif-toolbar-title">
-                <span class="icon"></span>
-                <span>🌧️ Радар GIF (запад России)</span>
-            </div>
-            <div class="gif-toolbar-buttons">
-                <button id="gif-zoom-out">−</button>
-                <button id="gif-zoom-in">+</button>
-                <button id="gif-reset">Сброс</button>
-                <button id="gif-close">Закрыть</button>
-            </div>
-        </div>
-        <div class="gif-container" id="gif-container">
-            <div class="gif-inner" id="gif-inner">
-                <!-- ВСТАВЬ СЮДА СВОЮ ГИФКУ METEOINFO -->
-                <img src="https://meteoinfo.ru/path/to/your/radar.gif" alt="Радар Meteoinfo">
-            </div>
-        </div>
-    </div>
+ <label>Цветовая шкала</label>
+ <div class="legend" id="legend"></div>
+ <div class="legend-labels" id="legendLabels"></div>
 
-    <script>
-        // ===== Карта и слои (как раньше) =====
-        const OPENWEATHER_API = 'b5fd8a2df3a6857059b351884cf1d26b';
-        
-        const map = L.map('map').setView([55.75, 37.61], 5); // Москва по умолчанию
+ <div class="description" id="description"></div>
+ <div class="description">
+  SYNTHETIC RADAR COMPOSITE<br>
+  Поле генерируется локально. Реальные радарные данные не используются.
+ </div>
+</div>
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© CartoDB | © OpenStreetMap',
-            maxZoom: 19
-        }).addTo(map);
-        
-        const layerUrls = {
-            clouds: `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            precip: `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            pressure: `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            wind: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            temp: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`
-        };
-        
-        let activeLayerName = null;
-        let activeTileLayer = null;
-        
-        const lightningGroup = L.layerGroup().addTo(map);
+<button id="toggle">☰</button>
 
-        // LibreWXR радар (простой слой)
-        const RADAR_TIMESTAMP = 'latest';
-        let radarLayer = L.tileLayer(
-            `https://api.librewxr.net/v2/radar/${RADAR_TIMESTAMP}/256/{z}/{x}/{y}/10/1_1.png`,
-            { maxZoom: 7, opacity: 0.8 }
-        );
+<div class="timeline">
+ <div class="controls">
+  <button id="prev">|◀</button>
+  <button id="back">◀◀</button>
+  <button id="pause">Ⅱ</button>
+  <button id="forward">▶▶</button>
+  <button id="next">▶|</button>
+  <span id="frame">36 / 36</span>
+ </div>
+ <input id="slider" type="range" min="0" max="36" value="36">
+ <div class="times"><span>−6 часов</span><span>Сейчас</span></div>
+</div>
 
-        const modelPrecipLayer = L.tileLayer(
-            `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPENWEATHER_API}`,
-            { opacity: 0.4, maxZoom: 19 }
-        );
-        
-        function setSatelliteLayer(layerName) {
-            if (activeTileLayer) {
-                map.removeLayer(activeTileLayer);
-            }
-            
-            if (layerName && layerUrls[layerName]) {
-                activeTileLayer = L.tileLayer(layerUrls[layerName], {
-                    opacity: 0.8,
-                    maxZoom: 19
-                }).addTo(map);
-                
-                activeLayerName = layerName;
-                document.getElementById('current-layer').textContent = layerName.toUpperCase();
-            }
-        }
-        
-        async function loadLightningOW() {
-            if (!document.getElementById('lightning').checked) {
-                lightningGroup.clearLayers();
-                document.getElementById('lightning-count').textContent = '0';
-                return;
-            }
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
 
-            const center = map.getCenter();
-            const radiusKm = 50;
+/* =========================================================
+   NOWCAST — RUSSIA SYNTHETIC RADAR COMPOSITE
 
-            const end = new Date();
-            const start = new Date(end.getTime() - 5 * 60 * 1000);
+   NO:
+   - predefined storm coordinates
+   - manually placed cells
+   - Gaussian storm objects
+   - hardcoded storm tracks
+   - external radar data
+   - Nowcast.ru requests
 
-            const startIso = start.toISOString();
-            const endIso = end.toISOString();
+   YES:
+   - continuous stochastic spatial field
+   - multiscale turbulent texture
+   - domain warping
+   - nonlinear echo formation
+   - discrete radar reflectivity classes
+   - continuous temporal advection
+   - full Russia geographic extent
+   - nearest-neighbor raster rendering
+========================================================= */
 
-            const url = `https://api.openweathermap.org/lightning/1.0/data?lat=${center.lat}&lon=${center.lng}&radius=${radiusKm}&start_date=${encodeURIComponent(startIso)}&end_date=${encodeURIComponent(endIso)}&apikey=${OPENWEATHER_API}`;
+/* =========================================================
+   1. MAP
+========================================================= */
 
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    console.error('Lightning API error:', response.status, response.statusText);
-                    document.getElementById('lightning-count').textContent = 'ошибка';
-                    return;
-                }
+const RUSSIA_BOUNDS=[
+ [41.0,19.0],
+ [82.5,190.0]
+];
 
-                const data = await response.json();
-                lightningGroup.clearLayers();
+const map=L.map('map',{
+ zoomControl:false,
+ preferCanvas:true,
+ zoomSnap:.25,
+ maxBounds:RUSSIA_BOUNDS,
+ maxBoundsViscosity:.75,
+ worldCopyJump:false
+}).setView([61,94],3);
 
-                if (!Array.isArray(data) || data.length === 0) {
-                    document.getElementById('lightning-count').textContent = '0';
-                    return;
-                }
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+ minZoom:2,
+ maxZoom:18,
+ noWrap:true,
+ attribution:'© OpenStreetMap'
+}).addTo(map);
 
-                data.forEach(strike => {
-                    const lat = strike.lat;
-                    const lon = strike.lon;
-                    if (typeof lat !== 'number' || typeof lon !== 'number') return;
+/* =========================================================
+   2. RASTER
+========================================================= */
 
-                    const marker = L.circleMarker([lat, lon], {
-                        radius: 9,
-                        color: '#ffffff',
-                        fillColor: '#ffff00',
-                        fillOpacity: 1.0,
-                        weight: 2,
-                        className: 'lightning-marker'
-                    });
+const RW=1536;
+const RH=768;
 
-                    const t = strike.datetime;
-                    let timeStr = 'неизвестно';
-                    if (t) {
-                        try {
-                            timeStr = new Date(t).toLocaleTimeString('ru-RU');
-                        } catch (e) {
-                            timeStr = String(t);
-                        }
-                    }
+const raster=document.createElement('canvas');
+raster.width=RW;
+raster.height=RH;
 
-                    marker.bindPopup(`
-                        <b>⚡ Молния (OpenWeather)</b><br>
-                        Время: ${timeStr}<br>
-                        Координаты: ${lat.toFixed(2)}, ${lon.toFixed(2)}
-                    `);
+const rctx=raster.getContext('2d',{alpha:true});
+rctx.imageSmoothingEnabled=false;
 
-                    lightningGroup.addLayer(marker);
-                });
+const image=rctx.createImageData(RW,RH);
+const pixels=image.data;
 
-                document.getElementById('lightning-count').textContent = data.length;
-            } catch (error) {
-                console.error('Ошибка молний OpenWeather:', error);
-                document.getElementById('lightning-count').textContent = 'ошибка';
-            }
-        }
-        
-        document.getElementById('satellite').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                const selected = document.getElementById('satellite-source').value;
-                setSatelliteLayer(selected);
-            } else if (activeTileLayer) {
-                map.removeLayer(activeTileLayer);
-                activeTileLayer = null;
-                document.getElementById('current-layer').textContent = '--';
-            }
-        });
-        
-        document.getElementById('satellite-source').addEventListener('change', (e) => {
-            if (document.getElementById('satellite').checked) {
-                setSatelliteLayer(e.target.value);
-            }
-        });
-        
-        document.getElementById('lightning').addEventListener('change', () => {
-            if (document.getElementById('lightning').checked) {
-                map.addLayer(lightningGroup);
-                loadLightningOW();
-            } else {
-                map.removeLayer(lightningGroup);
-                lightningGroup.clearLayers();
-                document.getElementById('lightning-count').textContent = '0';
-            }
-        });
+const overlay=L.imageOverlay(
+ raster.toDataURL('image/png'),
+ RUSSIA_BOUNDS,
+ {
+  opacity:.9,
+  interactive:false,
+  className:'radar-pixels'
+ }
+).addTo(map);
 
-        document.getElementById('radar-librewxr').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                radarLayer.addTo(map);
-            } else {
-                map.removeLayer(radarLayer);
-            }
-        });
+/* =========================================================
+   3. RUSSIA MASK
 
-        document.getElementById('model-precip').addEventListener('change', (e) => {
-            if (e.target.checked) {
-                modelPrecipLayer.addTo(map);
-            } else {
-                map.removeLayer(modelPrecipLayer);
-            }
-        });
+   Упрощённая географическая маска.
+   Не является точной государственной границей.
+========================================================= */
 
-        function updateStatus() {
-            const now = new Date();
-            document.getElementById('last-update').textContent = now.toLocaleTimeString('ru-RU');
-        }
+const outline=[
+ [19,54],[22,55],[26,54],[29,53],[32,51],[35,49],
+ [38,47],[42,46],[46,44],[50,43],[54,42],[58,42],
+ [63,43],[68,44],[73,43],[78,44],[83,46],[88,48],
+ [93,49],[98,50],[103,50],[108,49],[113,49],
+ [118,48],[123,48],[128,48],[131,43],[135,43],
+ [139,46],[143,48],[147,50],[152,52],[157,54],
+ [162,56],[167,58],[172,60],[177,62],[183,64],
+ [190,65],[190,75],[183,76],[176,74],[168,72],
+ [160,70],[152,71],[144,72],[136,72],[128,73],
+ [120,73],[112,73],[104,74],[96,75],[88,75],
+ [80,74],[73,72],[66,71],[59,70],[53,69],
+ [47,68],[42,68],[37,67],[33,66],[29,64],
+ [26,62],[23,60],[20,58],[19,56]
+];
 
-        setSatelliteLayer('clouds');
-        loadLightningOW();
-        setInterval(loadLightningOW, 5 * 60 * 1000);
-        setInterval(updateStatus, 1000);
-        map.on('moveend', loadLightningOW);
+const maskCanvas=document.createElement('canvas');
+maskCanvas.width=RW;
+maskCanvas.height=RH;
+const mctx=maskCanvas.getContext('2d');
 
-        // ===== GIF-слой: масштаб + вращение =====
-        const gifLayer = document.getElementById('gif-layer');
-        const gifInner = document.getElementById('gif-inner');
-        const gifContainer = document.getElementById('gif-container');
+function toRaster(lon,lat){
+ return [
+  (lon-19)/(190-19)*RW,
+  (82.5-lat)/(82.5-41)*RH
+ ];
+}
 
-        let gifScale = 1;
-        let gifRotation = 0;
-        let lastDistance = null;
-        let lastAngle = null;
+mctx.beginPath();
+outline.forEach((p,i)=>{
+ const q=toRaster(p[0],p[1]);
+ if(i===0)mctx.moveTo(q[0],q[1]);
+ else mctx.lineTo(q[0],q[1]);
+});
+mctx.closePath();
+mctx.fillStyle='#fff';
+mctx.fill();
 
-        function applyGifTransform() {
-            gifInner.style.transform = `scale(${gifScale}) rotate(${gifRotation}deg)`;
-        }
+const maskData=mctx.getImageData(0,0,RW,RH).data;
 
-        document.getElementById('gif-zoom-in').addEventListener('click', () => {
-            gifScale *= 1.2;
-            applyGifTransform();
-        });
+/* =========================================================
+   4. EXACT GIMET PALETTES
 
-        document.getElementById('gif-zoom-out').addEventListener('click', () => {
-            gifScale /= 1.2;
-            applyGifTransform();
-        });
+   Values and RGB colors from:
+   savelov/radar-wms/baltrad_wms.cfg.template
+========================================================= */
 
-        document.getElementById('gif-reset').addEventListener('click', () => {
-            gifScale = 1;
-            gifRotation = 0;
-            applyGifTransform();
-        });
+const palettes={
+ dbz:{
+  name:'Отражаемость, dBZ',
+  values:[-30,-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70],
+  colors:[
+   [220,220,220],[167,167,167],[171,210,235],
+   [206,255,153],[84,255,58],[0,170,255],
+   [1,77,255],[0,0,207],[0,0,127],
+   [255,255,0],[255,128,0],[255,61,55],
+   [255,0,0],[73,221,0],[0,170,0],
+   [245,0,245],[170,0,255],[113,0,0]
+  ],
+  description:'GIMET DBZH — 18 цветовых градаций от −30 до 70 dBZ.'
+ },
 
-        document.getElementById('gif-close').addEventListener('click', () => {
-            gifLayer.style.display = 'none';
-            document.getElementById('gif-layer-toggle').checked = false;
-        });
+ height:{
+  name:'Высота ВГО, км',
+  values:[0,.2,.5,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+  colors:[
+   [7,254,164],[27,243,107],[27,191,128],
+   [34,149,112],[37,113,100],[22,65,55],
+   [0,204,235],[3,135,229],[3,54,206],
+   [5,22,109],[211,181,31],[217,74,27],
+   [216,27,17],[132,5,11],[67,168,4],
+   [3,63,3],[161,17,72],[218,47,158]
+  ],
+  description:'GIMET HEIGHT — высота верхней границы облаков.'
+ },
 
-        document.getElementById('gif-layer-toggle').addEventListener('change', (e) => {
-            gifLayer.style.display = e.target.checked ? 'block' : 'none';
-        });
+ zdr:{
+  name:'ZDR, dB',
+  values:[-5,-4,-3,-2.5,-2,-1,-.5,0,.5,1,1.5,2,2.5,3,3.5,4,5],
+  colors:[
+   [33,40,148],[15,83,128],[29,191,255],
+   [47,221,255],[114,255,251],[115,255,136],
+   [123,184,69],[0,134,0],[254,225,0],
+   [223,192,77],[211,152,2],[254,169,166],
+   [231,89,79],[248,22,1],[186,11,11],
+   [190,150,174],[127,89,106]
+  ],
+  description:'GIMET ZDR — дифференциальная отражаемость.'
+ },
 
-        gifContainer.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                const [t1, t2] = e.touches;
-                const dx = t2.clientX - t1.clientX;
-                const dy = t2.clientY - t1.clientY;
-                const distance = Math.hypot(dx, dy);
-                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+ velocity:{
+  name:'Скорость, м/с',
+  values:[-50,-40,-30,-25,-20,-15,-10,-5,-.5,0,.5,5,10,15,20,25,30,40,50],
+  colors:[
+   [85,179,207],[71,135,158],[33,81,32],
+   [53,127,32],[0,179,0],[51,216,51],
+   [79,248,73],[155,203,171],[187,252,218],
+   [255,255,255],[254,0,254],[177,0,177],
+   [125,0,125],[147,0,0],[179,0,0],
+   [204,0,0],[236,0,0],[255,60,60],[255,121,111]
+  ],
+  description:'GIMET VELOCITY — радиальная скорость.'
+ },
 
-                if (lastDistance !== null) {
-                    const scaleFactor = distance / lastDistance;
-                    gifScale *= scaleFactor;
-                }
-                if (lastAngle !== null) {
-                    const angleDelta = angle - lastAngle;
-                    gifRotation += angleDelta;
-                }
+ precip:{
+  name:'Интенсивность, мм/ч',
+  values:[.1,.3,.5,1,3,5,7,10,20,30,50,100],
+  colors:[
+   [155,155,155],[135,135,135],[0,85,255],
+   [0,0,127],[255,255,0],[200,239,4],
+   [255,170,0],[255,85,0],[255,0,0],
+   [128,255,128],[0,170,0],[255,131,245],[208,0,208]
+  ],
+  description:'GIMET PRECIP — интенсивность осадков.'
+ },
 
-                lastDistance = distance;
-                lastAngle = angle;
-                applyGifTransform();
-            }
-        });
+ accum:{
+  name:'Сумма осадков, мм',
+  values:[.05,.1,.3,.5,1,2,3,5,7,10,20,30,50,100,200,300,500],
+  colors:[
+   [255,170,255],[208,232,255],[0,170,255],
+   [0,76,255],[0,0,197],[0,0,127],
+   [255,255,0],[255,128,1],[229,74,12],
+   [255,0,0],[0,190,0],[0,117,0],
+   [255,0,255],[203,0,156],[170,0,127],
+   [0,0,0],[162,101,166],[112,83,113]
+  ],
+  description:'GIMET SUMM — накопленная сумма осадков.'
+ },
 
-        gifContainer.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) {
-                lastDistance = null;
-                lastAngle = null;
-            }
-        });
-    </script>
+ phenomena:{
+  name:'Опасные явления',
+  values:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+  colors:[
+   [156,170,177],[162,198,255],[70,255,147],
+   [0,194,90],[0,152,0],[255,255,128],
+   [62,136,255],[1,56,255],[0,0,116],
+   [255,170,127],[255,85,127],[255,0,0],
+   [204,102,0],[136,68,0],[95,0,0],
+   [255,170,255],[255,85,255],[199,0,199],
+   [63,63,95]
+  ],
+  description:'GIMET PHENOMENA — классификация метеорологических явлений.'
+ },
+
+ nowcast:{
+  name:'Nowcasting, %',
+  values:[0,20,40,60,80,100],
+  colors:[
+   [204,204,204],[108,235,243],[64,152,87],
+   [241,243,90],[223,196,10],[235,149,26]
+  ],
+  description:'GIMET NOWCAST — процентная шкала.'
+ }
+};
+
+/* =========================================================
+   5. RANDOM FIELD ENGINE
+
+   Нет центров штормов.
+   Нет списка объектов.
+   Нет заранее заданных координат.
+   Структуры формируются из пространственного случайного поля.
+========================================================= */
+
+function hash(x,y,z){
+ let n=Math.imul(x|0,374761393);
+ n+=Math.imul(y|0,668265263);
+ n+=Math.imul(z|0,1442695041);
+ n=Math.imul(n^(n>>>13),1274126177);
+ n^=n>>>16;
+ return (n>>>0)/4294967295;
+}
+
+function fade(t){
+ return t*t*t*(t*(t*6-15)+10);
+}
+
+function noise3(x,y,z){
+ const ix=Math.floor(x);
+ const iy=Math.floor(y);
+ const iz=Math.floor(z);
+
+ const fx=fade(x-ix);
+ const fy=fade(y-iy);
+ const fz=fade(z-iz);
+
+ const a0=hash(ix,iy,iz);
+ const a1=hash(ix+1,iy,iz);
+ const b0=hash(ix,iy+1,iz);
+ const b1=hash(ix+1,iy+1,iz);
+
+ const c0=hash(ix,iy,iz+1);
+ const c1=hash(ix+1,iy,iz+1);
+ const d0=hash(ix,iy+1,iz+1);
+ const d1=hash(ix+1,iy+1,iz+1);
+
+ const low=mix(
+  mix(a0,a1,fx),
+  mix(b0,b1,fx),fy
+ );
+
+ const high=mix(
+  mix(c0,c1,fx),
+  mix(d0,d1,fx),fy
+ );
+
+ return mix(low,high,fz)*2-1;
+}
+
+function mix(a,b,t){
+ return a+(b-a)*t;
+}
+
+function fbm(x,y,t){
+ let sum=0;
+ let amp=.52;
+ let norm=0;
+
+ const scales=[
+  [1,1],
+  [2.1,2.0],
+  [4.3,4.0],
+  [8.4,8.1],
+  [16.2,15.7],
+  [31.5,30.8]
+ ];
+
+ for(let i=0;i<scales.length;i++){
+  const s=scales[i];
+  sum+=noise3(x*s[0],y*s[1],t*(.55+i*.08))*amp;
+  norm+=amp;
+  amp*=.51;
+ }
+
+ return sum/norm;
+}
+
+/* Пространственное поле с деформацией и адвекцией */
+function radarField(x,y,t){
+ const driftX=t*.19;
+ const driftY=t*.055;
+
+ const px=x-driftX;
+ const py=y-driftY;
+
+ const wx=fbm(px*.75+17,py*.75-8,t*.025);
+ const wy=fbm(px*.75-11,py*.75+23,t*.025);
+
+ const xx=px+wx*1.8;
+ const yy=py+wy*1.8;
+
+ const broad=fbm(xx*.72,yy*.72,t*.035);
+ const medium=fbm(xx*2.0,yy*2.0,t*.065);
+ const fine=fbm(xx*5.0,yy*5.0,t*.11);
+ const micro=fbm(xx*11.0,yy*11.0,t*.16);
+ const grain=fbm(xx*23.0,yy*23.0,t*.22);
+
+ let field=
+  broad*.48+
+  medium*.28+
+  fine*.15+
+  micro*.065+
+  grain*.025;
+
+ /* Неоднородность фронтальных структур */
+ const filament=fbm(xx*.9+yy*.25,yy*1.8-xx*.13,t*.045);
+ field+=filament*.12;
+
+ /* Прерывистая мелкомасштабная структура */
+ const breakup=fbm(xx*7.1+37,yy*7.1-19,t*.19);
+ field+=breakup*.055;
+
+ return field;
+}
+
+/* =========================================================
+   6. REFLECTIVITY VALUE
+
+   Полный диапазон GIMET:
+   -30 ... 70 dBZ
+
+   Классы не интерполируются.
+========================================================= */
+
+function reflectivity(x,y,t){
+ const f=radarField(x,y,t);
+
+ const normalized=clamp((f+.35)/1.15,0,1);
+
+ if(normalized<.12)return null;
+
+ const dbz=-30+100*Math.pow(normalized,.68);
+
+ return clamp(dbz,-30,70);
+}
+
+function clamp(v,a,b){
+ return Math.max(a,Math.min(b,v));
+}
+
+/* =========================================================
+   7. PALETTE LOOKUP
+========================================================= */
+
+function paletteColor(value,palette){
+ const p=palettes[palette];
+ let index=0;
+
+ for(let i=0;i<p.values.length;i++){
+  if(value>=p.values[i])index=i;
+ }
+
+ return p.colors[index];
+}
+
+/* =========================================================
+   8. PRODUCTS
+========================================================= */
+
+function productValue(dbz,x,y,t,product){
+ if(dbz===null)return null;
+
+ if(product==='dbz')return dbz;
+
+ if(product==='height'){
+  return clamp((dbz+20)*.36,0,15);
+ }
+
+ if(product==='zdr'){
+  const v=fbm(x*.015,y*.015,t*.04);
+  return clamp(v*5, -5,5);
+ }
+
+ if(product==='velocity'){
+  const v=fbm(x*.009+14,y*.009-8,t*.04);
+  return v*50;
+ }
+
+ if(product==='precip'){
+  const z=Math.pow(10,dbz/10);
+  return Math.pow(z/200,1/1.6);
+ }
+
+ if(product==='accum'){
+  return Math.max(0,(dbz+10)*.75);
+ }
+
+ if(product==='phenomena'){
+  if(dbz<15)return 2;
+  if(dbz<25)return 6;
+  if(dbz<35)return 9;
+  if(dbz<45)return 10;
+  if(dbz<52)return 12;
+  if(dbz<60)return 13;
+  return 14;
+ }
+
+ if(product==='nowcast'){
+  return clamp((dbz+30)/100*100,0,100);
+ }
+
+ return dbz;
+}
+
+/* =========================================================
+   9. RASTER RENDER
+========================================================= */
+
+let frame=36;
+let playing=false;
+let timer=null;
+let lastFrame=-1;
+let rendering=false;
+
+function render(){
+ if(rendering)return;
+ rendering=true;
+
+ const product=$('product').value;
+ const t=frame*.12;
+ const block=+$('pixelSize').value;
+
+ for(let y=0;y<RH;y+=block){
+  for(let x=0;x<RW;x+=block){
+
+   const index=(y*RW+x)*4;
+
+   if(maskData[index+3]===0){
+    for(let py=y;py<Math.min(y+block,RH);py++){
+     for(let px=x;px<Math.min(x+block,RW);px++){
+      const i=(py*RW+px)*4;
+      pixels[i+3]=0;
+     }
+    }
+    continue;
+   }
+
+   const nx=x/RW*12;
+   const ny=y/RH*6;
+
+   let dbz=reflectivity(nx,ny,t);
+
+   if(product==='nowcast'){
+    dbz=reflectivity(nx,ny,t+1.7);
+   }
+
+   const value=productValue(dbz,nx,ny,t,product);
+
+   if(value===null){
+    for(let py=y;py<Math.min(y+block,RH);py++){
+     for(let px=x;px<Math.min(x+block,RW);px++){
+      const i=(py*RW+px)*4;
+      pixels[i+3]=0;
+     }
+    }
+    continue;
+   }
+
+   const color=paletteColor(value,product);
+   const alpha=255;
+
+   for(let py=y;py<Math.min(y+block,RH);py++){
+    for(let px=x;px<Math.min(x+block,RW);px++){
+     const i=(py*RW+px)*4;
+     pixels[i]=color[0];
+     pixels[i+1]=color[1];
+     pixels[i+2]=color[2];
+     pixels[i+3]=alpha;
+    }
+   }
+  }
+ }
+
+ rctx.putImageData(image,0,0);
+
+ /* Передаём растр без сглаживания */
+ overlay.setUrl(raster.toDataURL('image/png'));
+ overlay.setOpacity(+$('opacity').value/100);
+
+ $('frame').textContent=frame+' / 36';
+ $('slider').value=frame;
+ $('clock').textContent=frame===36?'Сейчас':'−'+((36-frame)*10)+' мин';
+
+ rendering=false;
+}
+
+/* =========================================================
+   10. CONTROLS
+========================================================= */
+
+function updateLegend(){
+ const p=palettes[$('product').value];
+
+ $('legend').innerHTML=p.colors.map(c=>
+  `<span style="background:rgb(${c.join(',')})"></span>`
+ ).join('');
+
+ $('legendLabels').innerHTML=
+  `<span>${p.values[0]}</span>`+
+  `<span>${p.values[Math.floor(p.values.length/2)]}</span>`+
+  `<span>${p.values[p.values.length-1]}</span>`;
+
+ $('description').textContent=p.description;
+}
+
+function changeProduct(v){
+ $('product').value=v;
+ $('product2').value=v;
+ updateLegend();
+ render();
+}
+
+$('product').onchange=e=>changeProduct(e.target.value);
+$('product2').onchange=e=>changeProduct(e.target.value);
+
+$('opacity').oninput=()=>{
+ overlay.setOpacity(+$('opacity').value/100);
+};
+
+$('pixelSize').oninput=render;
+
+$('toggle').onclick=()=>{
+ $('panel').classList.toggle('closed');
+ $('toggle').classList.toggle('shift');
+};
+
+function stop(){
+ playing=false;
+ clearInterval(timer);
+ timer=null;
+}
+
+function start(direction){
+ stop();
+ playing=true;
+
+ timer=setInterval(()=>{
+  frame+=direction;
+
+  if(frame>36)frame=0;
+  if(frame<0)frame=36;
+
+  render();
+ },350);
+}
+
+$('prev').onclick=()=>{
+ stop();
+ frame=Math.max(0,frame-1);
+ render();
+};
+
+$('next').onclick=()=>{
+ stop();
+ frame=Math.min(36,frame+1);
+ render();
+};
+
+$('back').onclick=()=>start(-1);
+$('forward').onclick=()=>start(1);
+$('pause').onclick=stop;
+
+$('slider').oninput=e=>{
+ stop();
+ frame=+e.target.value;
+ render();
+};
+
+/* =========================================================
+   11. INITIALIZE
+========================================================= */
+
+updateLegend();
+render();
+
+window.addEventListener('resize',()=>{
+ map.invalidateSize();
+});
+</script>
 </body>
 </html>
