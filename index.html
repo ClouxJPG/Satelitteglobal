@@ -1,497 +1,454 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>NOWCAST Radar</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Geometry Dash — Stereo Rush</title>
 <style>
 *{box-sizing:border-box}
-html,body,#map{width:100%;height:100%;margin:0}
-body{background:#17232d;color:#e8edf2;font-family:Arial,sans-serif;overflow:hidden}
-#map{background:#17232d}
-.leaflet-control-zoom{display:none}
-.leaflet-control-attribution{font-size:9px!important}
-.radar-pixels{
- image-rendering:pixelated!important;
- image-rendering:crisp-edges!important;
-}
-.top{position:absolute;z-index:1000;top:8px;left:8px;right:8px;display:flex;gap:6px;align-items:center}
-.brand,.clock,.product,.panel,.timeline{background:#17232df2;border:1px solid #536674;border-radius:3px;box-shadow:0 2px 8px #0005}
-.brand{padding:11px;font-size:13px;font-weight:bold;letter-spacing:1px}
-.product{flex:1;min-width:0;padding:10px 6px;color:white;font-size:12px}
-.clock{padding:11px 9px;font-size:12px;white-space:nowrap}
-select{background:#253541;color:white;border:1px solid #536674;border-radius:3px}
-.panel{position:absolute;z-index:1000;top:59px;left:8px;width:245px;max-height:calc(100% - 145px);overflow:auto;padding:12px;transition:transform .2s}
-.panel.closed{transform:translateX(-110%)}
-h3{font-size:11px;color:#a9bac6;letter-spacing:1px;margin:3px 0 12px}
-label{display:block;color:#c0cbd4;font-size:11px;margin:13px 0 6px}
-.panel select{width:100%;padding:8px}
-input[type=range]{width:100%;accent-color:#61a9dc}
-.legend{display:flex;height:15px;margin-top:8px}
-.legend span{flex:1}
-.legend-labels{display:flex;justify-content:space-between;font-size:9px;color:#bdc8d0;margin-top:4px}
-.description{font-size:10px;line-height:1.5;color:#aebbc5;margin-top:12px}
-#toggle{position:absolute;z-index:1001;top:59px;left:260px;background:#17232d;color:white;border:1px solid #536674;border-radius:3px;padding:10px}
-#toggle.shift{left:8px}
-.timeline{position:absolute;z-index:1000;bottom:8px;left:8px;right:8px;padding:9px}
-.controls{display:flex;gap:5px;align-items:center}
-button{background:#293b48;color:#edf2f6;border:1px solid #617481;border-radius:3px;padding:8px 10px;font-size:13px}
-button:active{background:#456276}
-#frame{margin-left:auto;font-size:10px}
-#slider{margin:9px 0 2px}
-.times{display:flex;justify-content:space-between;color:#aebdc7;font-size:9px}
-@media(max-width:600px){
- .top{top:6px;left:6px;right:6px;gap:4px}
- .brand{padding:10px 7px;font-size:11px}
- .product{font-size:10px;padding:9px 3px}
- .clock{font-size:10px;padding:10px 6px}
- .panel{top:51px;left:6px;width:225px;max-height:calc(100% - 130px)}
- #toggle{top:51px;left:235px}
- #toggle.shift{left:6px}
- .timeline{left:6px;right:6px;bottom:6px}
- button{padding:8px 9px}
-}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10131b;touch-action:none;font-family:Arial}
+body{display:flex;align-items:center;justify-content:center}
+canvas{display:block;width:100%;height:100%}
+#rotate{position:fixed;inset:0;background:#111827;color:white;display:none;z-index:10;align-items:center;justify-content:center;text-align:center;font-size:22px}
+@media(orientation:portrait){#rotate{display:flex}}
 </style>
 </head>
 <body>
-<div id="map"></div>
-
-<div class="top">
- <div class="brand">NOWCAST</div>
- <select class="product" id="product">
-  <option value="dbz">Отражаемость 1 км</option>
-  <option value="height">Высота ВГО</option>
-  <option value="zdr">ZDR</option>
-  <option value="velocity">Доплеровская скорость</option>
-  <option value="precip">Интенсивность осадков</option>
-  <option value="accum">Сумма осадков</option>
-  <option value="nowcast">Nowcasting</option>
- </select>
- <div class="clock" id="clock">Сейчас</div>
-</div>
-
-<div class="panel" id="panel">
- <h3>Параметры отображения</h3>
- <label>Продукт</label>
- <select id="product2">
-  <option value="dbz">Отражаемость 1 км</option>
-  <option value="height">Высота ВГО</option>
-  <option value="zdr">ZDR</option>
-  <option value="velocity">Доплеровская скорость</option>
-  <option value="precip">Интенсивность осадков</option>
-  <option value="accum">Сумма осадков</option>
-  <option value="nowcast">Nowcasting</option>
- </select>
- <label>Прозрачность</label>
- <input id="opacity" type="range" min="10" max="100" value="90">
- <label>Размер пикселя</label>
- <input id="pixelSize" type="range" min="1" max="4" value="1">
- <label>Цветовая шкала</label>
- <div class="legend" id="legend"></div>
- <div class="legend-labels" id="legendLabels"></div>
- <div class="description" id="description"></div>
- <div class="description">Синтетические данные. Запросы к Nowcast.ru отсутствуют.</div>
-</div>
-
-<button id="toggle">☰</button>
-
-<div class="timeline">
- <div class="controls">
-  <button id="prev">|◀</button>
-  <button id="back">◀◀</button>
-  <button id="pause">Ⅱ</button>
-  <button id="forward">▶▶</button>
-  <button id="next">▶|</button>
-  <span id="frame">36 / 36</span>
- </div>
- <input id="slider" type="range" min="0" max="36" value="36">
- <div class="times"><span>−6 часов</span><span>Сейчас</span></div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="rotate">ПЕРЕВЕРНИ ТЕЛЕФОН<br><br>ИГРА В ГОРИЗОНТАЛЬНОМ РЕЖИМЕ</div>
+<canvas id="c"></canvas>
 <script>
-'use strict';
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
 
-/* =========================================================
-   NOWCAST — GLOBAL SYNTHETIC RADAR
-   No predefined storm objects.
-   No storm coordinates.
-   No geographic clipping.
-   No external radar data.
-========================================================= */
+let W,H;
+function resize(){
+ W=canvas.width=innerWidth;
+ H=canvas.height=innerHeight;
+}
+window.addEventListener('resize',resize);
+resize();
 
-/* MAP: обычная карта без ограничений */
+const TILE=42;
+const GROUND=0;
+const SPEED=360;
+const GRAVITY=2200;
+const JUMP=-770;
 
-const map=L.map('map',{
- zoomControl:false,
- preferCanvas:true,
- zoomSnap:.25,
- worldCopyJump:false
-}).setView([58,90],3);
+let player;
+let cam=0;
+let started=false;
+let dead=false;
+let won=false;
+let attempts=1;
+let progress=0;
+let particles=[];
+let flash=0;
+let jumpPressed=false;
+let last=0;
+let levelLength=7900;
+let menu=true;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
- maxZoom:19,
- noWrap:false,
- attribution:'© OpenStreetMap'
-}).addTo(map);
+const obstacles=[
+ // Первый участок
+ {x:500,type:'spike'},
+ {x:720,type:'spike'},
+ {x:920,type:'double'},
+ {x:1240,type:'spike'},
+ {x:1430,type:'block'},
+ {x:1600,type:'spike'},
+ {x:1800,type:'double'},
+ {x:2080,type:'triple'},
+ {x:2450,type:'spike'},
+ {x:2630,type:'blockspike'},
+ {x:2860,type:'double'},
+ {x:3120,type:'spike'},
+ {x:3350,type:'triple'},
+ {x:3740,type:'double'},
+ {x:3990,type:'block'},
+ {x:4180,type:'spike'},
+ {x:4410,type:'triple'},
+ {x:4730,type:'double'},
+ {x:5020,type:'spike'},
+ {x:5240,type:'blockspike'},
+ {x:5480,type:'double'},
+ {x:5770,type:'triple'},
+ {x:6150,type:'spike'},
+ {x:6350,type:'double'},
+ {x:6600,type:'block'},
+ {x:6810,type:'triple'},
+ {x:7110,type:'double'},
+ {x:7410,type:'spike'},
+ {x:7650,type:'triple'}
+];
 
-/* RASTER: весь мир, без масок */
+function makePlayer(){
+ return {x:180,y:GROUND-40,w:34,h:34,vy:0,rot:0,onGround:true};
+}
 
-const W=2048;
-const H=1024;
+function reset(){
+ player=makePlayer();
+ cam=0;dead=false;won=false;particles=[];
+ flash=0;progress=0;started=true;menu=false;
+}
 
-const canvas=document.createElement('canvas');
-canvas.width=W;
-canvas.height=H;
+function start(){
+ attempts=1;
+ reset();
+}
 
-const ctx=canvas.getContext('2d',{alpha:true});
-ctx.imageSmoothingEnabled=false;
+function restart(){
+ attempts++;
+ reset();
+}
 
-const image=ctx.createImageData(W,H);
-const pixels=image.data;
-
-const WORLD_BOUNDS=[[-85,-180],[85,180]];
-
-const overlay=L.imageOverlay(
- canvas.toDataURL('image/png'),
- WORLD_BOUNDS,
- {
-  opacity:.9,
-  interactive:false,
-  className:'radar-pixels'
+function jump(){
+ if(!started||dead||won||menu)return;
+ if(player.onGround){
+  player.vy=JUMP;
+  player.onGround=false;
+  jumpPressed=true;
  }
-).addTo(map);
+}
 
-/* =========================================================
-   PALETTES
-========================================================= */
+canvas.addEventListener('pointerdown',e=>{
+ e.preventDefault();
+ if(menu){start();return;}
+ if(dead||won){restart();return;}
+ jump();
+});
 
-const palettes={
- dbz:{
-  name:'Отражаемость, dBZ',
-  values:[-30,-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70],
-  colors:[
-   '#dcdcdc','#a7a7a7','#abd2eb','#ceff99',
-   '#54ff3a','#00aaff','#014dff','#0000cf',
-   '#00007f','#ffff00','#ff8000','#ff3d37',
-   '#ff0000','#49dd00','#00aa00','#f500f5',
-   '#aa00ff','#710000'
-  ],
-  description:'GIMET DBZH: 18 цветовых ступеней от −30 до 70 dBZ.'
- },
- height:{
-  name:'Высота ВГО',
-  values:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
-  colors:['#07fea4','#1bf36b','#1bbf80','#229570','#257164','#164137','#00cceb','#0387e5','#0336ce','#05166d','#d3b51f','#d94a1b','#d81b11','#84050b','#43a804','#033f03','#a11148'],
-  description:'Высота верхней границы облаков. Синтетическое поле.'
- },
- zdr:{
-  name:'ZDR, dB',
-  values:[-5,-4,-3,-2.5,-2,-1,0,1,2,3,4,5],
-  colors:['#212894','#0f5380','#1dbfff','#2fddff','#72fffb','#73ff88','#008600','#fee100','#d3a002','#e7594f','#f81601','#7f596a'],
-  description:'Дифференциальная отражаемость. Синтетическое поле.'
- },
- velocity:{
-  name:'Скорость, м/с',
-  values:[-50,-40,-30,-20,-10,-5,0,5,10,20,30,40,50],
-  colors:['#55b3cf','#47879e','#215120','#358020','#00b300','#33d833','#9bcba9','#ffffff','#fe00fe','#7d007d','#b30000','#ec0000','#ff796f'],
-  description:'Радиальная скорость. Синтетическое поле.'
- },
- precip:{
-  name:'Интенсивность, мм/ч',
-  values:[.1,.3,.5,1,3,5,7,10,20,30,50,100],
-  colors:['#9b9b9b','#878787','#0055ff','#00007f','#ffff00','#c8ef04','#ffaa00','#ff5500','#ff0000','#80ff80','#00aa00','#ff83f5'],
-  description:'Интенсивность осадков. Производная от отражаемости.'
- },
- accum:{
-  name:'Сумма осадков, мм',
-  values:[.05,.1,.3,.5,1,2,3,5,7,10,20,30,50,100,200,300,500],
-  colors:['#ffaaff','#d0e8ff','#00aaff','#004cff','#0000c5','#00007f','#ffff00','#ff8001','#e54a0c','#ff0000','#00be00','#007500','#ff00ff','#cb009c','#aa007f','#000000','#a265a6'],
-  description:'Накопленная сумма осадков. Синтетическое поле.'
- },
- nowcast:{
-  name:'Nowcasting, dBZ',
-  values:[-30,-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70],
-  colors:['#dcdcdc','#a7a7a7','#abd2eb','#ceff99','#54ff3a','#00aaff','#014dff','#0000cf','#00007f','#ffff00','#ff8000','#ff3d37','#ff0000','#49dd00','#00aa00','#f500f5','#aa00ff','#710000'],
-  description:'Прогнозное синтетическое поле отражаемости.'
+window.addEventListener('keydown',e=>{
+ if(['Space','ArrowUp','KeyW'].includes(e.code))e.preventDefault();
+ if(e.repeat)return;
+ if(e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW'){
+  if(menu)start();
+  else if(dead||won)restart();
+  else jump();
  }
-};
+});
+window.addEventListener('keyup',e=>{
+ if(e.code==='Space')jumpPressed=false;
+});
 
-/* =========================================================
-   RANDOM FIELD
-========================================================= */
-
-function clamp(v,a,b){
- return Math.max(a,Math.min(b,v));
+function spike(x){
+ return {x,y:GROUND-40};
 }
 
-function mix(a,b,t){
- return a+(b-a)*t;
-}
-
-function fade(t){
- return t*t*t*(t*(t*6-15)+10);
-}
-
-function hash(x,y,z){
- let n=Math.imul(x|0,374761393);
- n+=Math.imul(y|0,668265263);
- n+=Math.imul(z|0,1442695041);
- n=Math.imul(n^(n>>>13),1274126177);
- n^=n>>>16;
- return (n>>>0)/4294967295;
-}
-
-function noise3(x,y,z){
- const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z);
- const fx=fade(x-ix),fy=fade(y-iy),fz=fade(z-iz);
-
- const a=mix(hash(ix,iy,iz),hash(ix+1,iy,iz),fx);
- const b=mix(hash(ix,iy+1,iz),hash(ix+1,iy+1,iz),fx);
- const c=mix(hash(ix,iy,iz+1),hash(ix+1,iy,iz+1),fx);
- const d=mix(hash(ix,iy+1,iz+1),hash(ix+1,iy+1,iz+1),fx);
-
- return (mix(mix(a,b,fy),mix(c,d,fy),fz)*2)-1;
-}
-
-function fbm(x,y,t){
- let sum=0,amp=.5,norm=0;
- for(let i=0;i<6;i++){
-  const scale=Math.pow(2,i);
-  sum+=noise3(x*scale,y*scale,t*(.6+i*.09))*amp;
-  norm+=amp;
-  amp*=.5;
+function getObstacles(){
+ let arr=[];
+ for(const o of obstacles){
+  let x=o.x;
+  if(o.type==='spike'){
+   arr.push(spike(x));
+  }
+  if(o.type==='double'){
+   arr.push(spike(x));arr.push(spike(x+42));
+  }
+  if(o.type==='triple'){
+   arr.push(spike(x));arr.push(spike(x+42));arr.push(spike(x+84));
+  }
+  if(o.type==='block'){
+   arr.push({x,y:GROUND-42,type:'block'});
+  }
+  if(o.type==='blockspike'){
+   arr.push({x,y:GROUND-42,type:'block'});
+   arr.push(spike(x+42));
+  }
  }
- return sum/norm;
+ return arr;
 }
+const all=getObstacles();
 
-/* Глобальное поле: нет центров и объектов */
-
-function field(x,y,t){
- const driftX=t*.16;
- const driftY=t*.045;
-
- x-=driftX;
- y-=driftY;
-
- const warpX=fbm(x*.65+19,y*.65-7,t*.025);
- const warpY=fbm(x*.65-13,y*.65+29,t*.025);
-
- const xx=x+warpX*1.7;
- const yy=y+warpY*1.7;
-
- const large=fbm(xx*.8,yy*.8,t*.035);
- const medium=fbm(xx*2.2,yy*2.2,t*.065);
- const small=fbm(xx*5.5,yy*5.5,t*.11);
- const fine=fbm(xx*12,yy*12,t*.17);
- const grain=fbm(xx*24,yy*24,t*.23);
-
- let v=large*.50+medium*.28+small*.14+fine*.06+grain*.025;
-
- const bands=fbm(xx*.9+yy*.25,yy*1.8-xx*.12,t*.04);
- v+=bands*.12;
-
- const breakup=fbm(xx*8.5+37,yy*8.5-19,t*.18);
- v+=breakup*.07;
-
- return v;
-}
-
-function reflectivity(x,y,t){
- const f=field(x,y,t);
-
- /* Нелинейное распределение отражаемости */
- const n=clamp((f+.19)/.82,0,1);
-
- if(n<.12)return null;
-
- return -30+100*Math.pow(n,.75);
-}
-
-/* =========================================================
-   COLOR LOOKUP
-========================================================= */
-
-function getColor(value,product){
- const p=palettes[product];
- let index=0;
-
- for(let i=0;i<p.values.length;i++){
-  if(value>=p.values[i])index=i;
- }
-
- return p.colors[index];
-}
-
-function valueFor(dbz,x,y,t,product){
- if(dbz===null)return null;
-
- switch(product){
-  case 'dbz':
-  case 'nowcast':
-   return dbz;
-
-  case 'height':
-   return clamp((dbz+20)*.36,0,16);
-
-  case 'zdr':
-   return clamp(fbm(x*.025,y*.025,t*.04)*4,-5,5);
-
-  case 'velocity':
-   return fbm(x*.015+12,y*.015-8,t*.04)*50;
-
-  case 'precip':
-   return Math.pow(10,dbz/10)/200;
-
-  case 'accum':
-   return Math.max(0,(dbz+10)*.75);
- }
- return dbz;
-}
-
-/* =========================================================
-   RENDER
-========================================================= */
-
-let frame=36;
-let timer=null;
-
-function render(){
- const product=$('product').value;
- const time=frame*.13;
- const block=+$('pixelSize').value;
-
- for(let y=0;y<H;y+=block){
-  for(let x=0;x<W;x+=block){
-   const nx=x/W*16;
-   const ny=y/H*8;
-
-   let dbz=reflectivity(nx,ny,time);
-
-   if(product==='nowcast'){
-    dbz=reflectivity(nx,ny,time+1.4);
+function collision(){
+ const px=player.x,py=player.y;
+ for(const o of all){
+  let ox=o.x-cam+player.x;
+  if(ox<-100||ox>W+100)continue;
+  if(o.type==='block'){
+   if(px+player.w>o.x&&px<o.x+42&&
+      py+player.h>GROUND-42&&py<GROUND){
+    return true;
    }
-
-   const value=valueFor(dbz,nx,ny,time,product);
-
-   let color=null;
-
-   if(value!==null){
-    color=getColor(value,product);
-   }
-
-   const rgb=color?[
-    parseInt(color.slice(1,3),16),
-    parseInt(color.slice(3,5),16),
-    parseInt(color.slice(5,7),16)
-   ]:null;
-
-   for(let py=y;py<Math.min(y+block,H);py++){
-    for(let px=x;px<Math.min(x+block,W);px++){
-     const i=(py*W+px)*4;
-
-     if(!rgb){
-      pixels[i+3]=0;
-     }else{
-      pixels[i]=rgb[0];
-      pixels[i+1]=rgb[1];
-      pixels[i+2]=rgb[2];
-      pixels[i+3]=255;
-     }
-    }
+  }else{
+   // Collision area of spike, intentionally close to GD hitboxes
+   let bx=o.x,by=GROUND-40;
+   let cx=px+player.w*.5;
+   let cy=py+player.h*.7;
+   if(cx>bx+8&&cx<bx+34&&cy>by+5&&cy<GROUND){
+    return true;
    }
   }
  }
-
- ctx.putImageData(image,0,0);
-
- overlay.setUrl(canvas.toDataURL('image/png'));
- overlay.setOpacity(+$('opacity').value/100);
-
- $('frame').textContent=frame+' / 36';
- $('slider').value=frame;
- $('clock').textContent=frame===36?'Сейчас':'−'+((36-frame)*10)+' мин';
+ return false;
 }
 
-/* =========================================================
-   UI
-========================================================= */
-
-function updateLegend(){
- const p=palettes[$('product').value];
-
- $('legend').innerHTML=p.colors.map(c=>
-  `<span style="background:${c}"></span>`
- ).join('');
-
- $('legendLabels').innerHTML=
-  `<span>${p.values[0]}</span>`+
-  `<span>${p.values[Math.floor(p.values.length/2)]}</span>`+
-  `<span>${p.values[p.values.length-1]}</span>`;
-
- $('description').textContent=p.description;
+function burst(){
+ for(let i=0;i<28;i++){
+  particles.push({
+   x:player.x+player.w/2,
+   y:player.y+player.h/2,
+   vx:(Math.random()-.5)*600,
+   vy:(Math.random()-.5)*600,
+   life:1,
+   size:2+Math.random()*5
+  });
+ }
+ flash=.3;
 }
 
-function setProduct(v){
- $('product').value=v;
- $('product2').value=v;
- updateLegend();
- render();
+function die(){
+ if(dead)return;
+ dead=true;
+ burst();
 }
 
-$('product').onchange=e=>setProduct(e.target.value);
-$('product2').onchange=e=>setProduct(e.target.value);
-
-$('opacity').oninput=()=>{
- overlay.setOpacity(+$('opacity').value/100);
-};
-
-$('pixelSize').oninput=render;
-
-$('toggle').onclick=()=>{
- $('panel').classList.toggle('closed');
- $('toggle').classList.toggle('shift');
-};
-
-function stop(){
- clearInterval(timer);
- timer=null;
+function update(dt){
+ if(!started||dead||won)return;
+ dt=Math.min(dt,.035);
+ cam+=SPEED*dt;
+ player.x=cam+180;
+ player.vy+=GRAVITY*dt;
+ player.y+=player.vy*dt;
+ if(player.y>=GROUND-player.h){
+  player.y=GROUND-player.h;
+  player.vy=0;
+  player.onGround=true;
+ }
+ if(!player.onGround)player.rot+=dt*5;
+ else player.rot=Math.round(player.rot/(Math.PI/2))*(Math.PI/2);
+ if(collision())die();
+ progress=Math.min(100,cam/(levelLength)*100);
+ if(cam>levelLength){
+  won=true;
+  progress=100;
+ }
+ particles.forEach(p=>{
+  p.x+=p.vx*dt;p.y+=p.vy*dt;
+  p.vy+=700*dt;p.life-=dt;
+ });
+ particles=particles.filter(p=>p.life>0);
+ flash=Math.max(0,flash-dt);
 }
 
-function play(direction){
- stop();
- timer=setInterval(()=>{
-  frame+=direction;
-  if(frame>36)frame=0;
-  if(frame<0)frame=36;
-  render();
- },350);
+function drawBackground(){
+ ctx.fillStyle='#182b4d';
+ ctx.fillRect(0,0,W,H);
+
+ // gradient
+ let grad=ctx.createLinearGradient(0,0,0,H);
+ grad.addColorStop(0,'#152449');
+ grad.addColorStop(1,'#215b8a');
+ ctx.fillStyle=grad;
+ ctx.fillRect(0,0,W,H);
+
+ // Grid
+ ctx.strokeStyle='rgba(110,190,255,.10)';
+ ctx.lineWidth=1;
+ let offset=cam%42;
+ for(let x=-offset;x<W;x+=42){
+  ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
+ }
+ for(let y=0;y<H;y+=42){
+  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+ }
+
+ // Background blocks
+ for(let i=0;i<20;i++){
+  let x=((i*370-cam*.22)% (W+500));
+  if(x<0)x+=W+500;
+  let hh=100+(i%4)*50;
+  ctx.fillStyle='rgba(31,72,115,.25)';
+  ctx.fillRect(x,H-hh-70,70,hh);
+ }
 }
 
-$('prev').onclick=()=>{
- stop();frame=Math.max(0,frame-1);render();
-};
+function drawGround(){
+ let g=GROUND;
+ ctx.fillStyle='#263b5c';
+ ctx.fillRect(0,g,W,H-g);
+ ctx.fillStyle='#64e5ff';
+ ctx.fillRect(0,g,W,4);
 
-$('next').onclick=()=>{
- stop();frame=Math.min(36,frame+1);render();
-};
+ let offset=cam%42;
+ for(let x=-offset;x<W;x+=42){
+  ctx.strokeStyle='rgba(120,220,255,.25)';
+  ctx.strokeRect(x,g+4,42,42);
+ }
+}
 
-$('back').onclick=()=>play(-1);
-$('forward').onclick=()=>play(1);
-$('pause').onclick=stop;
+function drawObstacle(o){
+ let x=o.x-cam+180;
+ if(x<-100||x>W+100)return;
 
-$('slider').oninput=e=>{
- stop();
- frame=+e.target.value;
- render();
-};
+ if(o.type==='block'){
+  ctx.fillStyle='#39d7ff';
+  ctx.fillRect(x,GROUND-42,42,42);
+  ctx.fillStyle='#1d86be';
+  ctx.fillRect(x+5,GROUND-37,32,32);
+  ctx.strokeStyle='#a8f5ff';
+  ctx.lineWidth=3;
+  ctx.strokeRect(x+5,GROUND-37,32,32);
+  return;
+ }
 
-updateLegend();
-render();
+ ctx.fillStyle='#ffffff';
+ ctx.beginPath();
+ ctx.moveTo(x,GROUND);
+ ctx.lineTo(x+42,GROUND);
+ ctx.lineTo(x+21,GROUND-40);
+ ctx.closePath();
+ ctx.fill();
 
-window.addEventListener('resize',()=>map.invalidateSize());
+ ctx.fillStyle='#54e8ff';
+ ctx.beginPath();
+ ctx.moveTo(x+8,GROUND-3);
+ ctx.lineTo(x+21,GROUND-29);
+ ctx.lineTo(x+34,GROUND-3);
+ ctx.closePath();
+ ctx.fill();
+
+ ctx.strokeStyle='#c4faff';
+ ctx.lineWidth=2;
+ ctx.beginPath();
+ ctx.moveTo(x+21,GROUND-40);
+ ctx.lineTo(x+21,GROUND);
+ ctx.stroke();
+}
+
+function drawPlayer(){
+ if(dead)return;
+ let x=180,y=player.y;
+ ctx.save();
+ ctx.translate(x+17,y+17);
+ ctx.rotate(player.rot);
+
+ ctx.shadowColor='#5df4ff';
+ ctx.shadowBlur=15;
+ ctx.fillStyle='#5deaff';
+ ctx.fillRect(-17,-17,34,34);
+ ctx.shadowBlur=0;
+
+ ctx.fillStyle='#2386c5';
+ ctx.fillRect(-12,-12,24,24);
+
+ ctx.strokeStyle='#bdfbff';
+ ctx.lineWidth=3;
+ ctx.strokeRect(-12,-12,24,24);
+
+ // eyes
+ ctx.fillStyle='#fff';
+ ctx.fillRect(-8,-4,7,7);
+ ctx.fillRect(3,-4,7,7);
+ ctx.fillStyle='#14233c';
+ ctx.fillRect(-5,-1,3,3);
+ ctx.fillRect(6,-1,3,3);
+
+ ctx.restore();
+}
+
+function drawParticles(){
+ particles.forEach(p=>{
+  ctx.globalAlpha=Math.max(0,p.life);
+  ctx.fillStyle='#75efff';
+  ctx.fillRect(p.x-cam+180,p.y,p.size,p.size);
+ });
+ ctx.globalAlpha=1;
+}
+
+function drawProgress(){
+ ctx.fillStyle='rgba(0,0,0,.4)';
+ ctx.fillRect(W/2-120,15,240,12);
+ ctx.fillStyle='#43dcff';
+ ctx.fillRect(W/2-120,15,240*progress/100,12);
+ ctx.strokeStyle='#c0efff';
+ ctx.strokeRect(W/2-120,15,240,12);
+ ctx.fillStyle='#fff';
+ ctx.font='12px Arial';
+ ctx.textAlign='center';
+ ctx.fillText(Math.floor(progress)+'%',W/2,40);
+
+ ctx.textAlign='left';
+ ctx.fillText('ATTEMPT '+attempts,15,25);
+ ctx.textAlign='right';
+ ctx.fillText('STEREO RUSH',W-15,25);
+}
+
+function drawMenu(){
+ ctx.fillStyle='rgba(5,10,22,.75)';
+ ctx.fillRect(0,0,W,H);
+ ctx.textAlign='center';
+ ctx.shadowColor='#40eaff';ctx.shadowBlur=20;
+ ctx.fillStyle='#fff';
+ ctx.font='bold 48px Arial';
+ ctx.fillText('GEOMETRY DASH',W/2,H/2-60);
+ ctx.shadowBlur=0;
+ ctx.font='bold 28px Arial';
+ ctx.fillStyle='#4eeaff';
+ ctx.fillText('STEREO RUSH',W/2,H/2-15);
+ ctx.font='18px Arial';
+ ctx.fillStyle='#fff';
+ ctx.fillText('НАЖМИ, ЧТОБЫ ИГРАТЬ',W/2,H/2+50);
+ ctx.font='13px Arial';
+ ctx.fillStyle='#9ab7d9';
+ ctx.fillText('SPACE / CLICK / TAP — JUMP',W/2,H/2+90);
+}
+
+function drawDeath(){
+ if(!dead)return;
+ ctx.fillStyle='rgba(10,12,22,.7)';
+ ctx.fillRect(0,0,W,H);
+ ctx.textAlign='center';
+ ctx.fillStyle='#ff5f77';
+ ctx.font='bold 42px Arial';
+ ctx.fillText('CRASH!',W/2,H/2-30);
+ ctx.fillStyle='#fff';
+ ctx.font='18px Arial';
+ ctx.fillText('НАЖМИ, ЧТОБЫ ПОВТОРИТЬ',W/2,H/2+25);
+ ctx.font='14px Arial';
+ ctx.fillStyle='#9cb6d5';
+ ctx.fillText('ATTEMPT '+attempts,W/2,H/2+60);
+}
+
+function drawWin(){
+ if(!won)return;
+ ctx.fillStyle='rgba(10,12,22,.75)';
+ ctx.fillRect(0,0,W,H);
+ ctx.textAlign='center';
+ ctx.fillStyle='#5bffff';
+ ctx.font='bold 45px Arial';
+ ctx.fillText('LEVEL COMPLETE!',W/2,H/2-35);
+ ctx.fillStyle='#fff';
+ ctx.font='20px Arial';
+ ctx.fillText('100%',W/2,H/2+10);
+ ctx.font='16px Arial';
+ ctx.fillText('НАЖМИ, ЧТОБЫ ИГРАТЬ СНОВА',W/2,H/2+60);
+}
+
+function draw(){
+ drawBackground();
+ drawGround();
+ all.forEach(drawObstacle);
+ drawPlayer();
+ drawParticles();
+ drawProgress();
+ drawDeath();
+ drawWin();
+ if(menu)drawMenu();
+ if(flash>0){
+  ctx.fillStyle='rgba(255,255,255,'+flash+')';
+  ctx.fillRect(0,0,W,H);
+ }
+}
+
+function loop(t){
+ let dt=(t-last)/1000;
+ last=t;
+ update(dt||0);
+ draw();
+ requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
 </script>
 </body>
-</html>
+</html> 
